@@ -1943,19 +1943,32 @@
             globePlane.position.copy(latLonToVec3(companies[0].lat,companies[0].lon,2.05));
             globeGroup.rotation.y = companyTargetRotY(0);
             globeRotYSmoothed = globeGroup.rotation.y;
-            lastShowCompany = 0;
             globeAutoRotate = false;
 
             // Start globe animation immediately for pre-rendering
             globeActive = true;
             animateGlobe();
 
+            // Show first company card immediately so it's visible on arrival
+            currentExpCard = 0;
+            lastShowCompany = 0;
+            var firstCard = document.querySelector('.exp-card-0');
+            if(firstCard) {
+                firstCard.style.opacity = '1';
+                firstCard.style.transform = 'translateY(-50%) translateX(0)';
+            }
+
             // ScrollTrigger
             ScrollTrigger.create({
                 trigger:'.experience', start:'top top', end:'+=4000', pin:true,
+                onEnter: () => {
+                    globeActive = true; animateGlobe();
+                },
                 onUpdate: s => updateGlobeFlight(s.progress),
                 onLeave:()=>{globeActive=false;},
-                onEnterBack:()=>{globeActive=true;animateGlobe();},
+                onEnterBack:()=>{
+                    globeActive=true;animateGlobe();
+                },
                 onLeaveBack:()=>{globeActive=false;}
             });
 
