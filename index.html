@@ -1,0 +1,2335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vinicius Ferreira — Portfolio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+    <style>
+        /* =============================================
+           VARIABLES
+           ============================================= */
+        :root {
+            --bg: #050510;
+            --bg2: #0a0a1a;
+            --bg-card: #0c0c20;
+            --border: rgba(0,240,255,0.08);
+            --border-h: rgba(0,240,255,0.25);
+            --accent: #00F0FF;
+            --accent2: #7B61FF;
+            --accent3: #FF2D55;
+            --grad: linear-gradient(135deg, var(--accent), var(--accent2));
+            --grad2: linear-gradient(135deg, var(--accent2), var(--accent3));
+            --text: #E8E8F0;
+            --text-dim: #8888A0;
+            --text-muted: #404060;
+            --fh: 'Syne', sans-serif;
+            --fb: 'Inter', sans-serif;
+            --fm: 'JetBrains Mono', monospace;
+        }
+
+        /* =============================================
+           RESET
+           ============================================= */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scrollbar-width: thin; scrollbar-color: var(--accent2) var(--bg); }
+        body { background: var(--bg); color: var(--text); font-family: var(--fb); overflow-x: hidden; cursor: none; line-height: 1.6; }
+        ::selection { background: var(--accent2); color: #fff; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--accent2); border-radius: 3px; }
+        a { color: inherit; text-decoration: none; }
+        ul { list-style: none; }
+
+        /* =============================================
+           LOADER (Split-Screen Reveal)
+           ============================================= */
+        .loader { position: fixed; inset: 0; z-index: 10000; pointer-events: none; }
+        .loader-top, .loader-bottom {
+            position: absolute; left: 0; width: 100%; height: 50%; background: var(--bg); z-index: 10001;
+        }
+        .loader-top { top: 0; }
+        .loader-bottom { bottom: 0; }
+        .loader-count {
+            position: fixed; bottom: 2rem; right: 3rem;
+            font-family: var(--fm); font-size: clamp(4rem, 8vw, 7rem); font-weight: 700;
+            color: rgba(0,240,255,0.12); z-index: 10002;
+        }
+        .loader-line {
+            position: fixed; top: 50%; left: 0; width: 0; height: 1px;
+            background: var(--accent); z-index: 10003;
+        }
+
+        /* =============================================
+           CUSTOM CURSOR
+           ============================================= */
+        .cursor-dot {
+            position: fixed; width: 8px; height: 8px;
+            background: var(--accent); border-radius: 50%;
+            pointer-events: none; z-index: 99999;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s, background 0.3s;
+            mix-blend-mode: difference;
+        }
+        .cursor-ring {
+            position: fixed; width: 40px; height: 40px;
+            border: 1.5px solid var(--accent); border-radius: 50%;
+            pointer-events: none; z-index: 99998;
+            transform: translate(-50%, -50%);
+            transition: width 0.4s, height 0.4s, border-color 0.4s;
+            opacity: 0.5;
+        }
+        .cursor-dot.hover { width: 60px; height: 60px; background: rgba(0,240,255,0.1); mix-blend-mode: normal; }
+        .cursor-ring.hover { width: 80px; height: 80px; border-color: var(--accent2); opacity: 0.8; }
+
+        /* =============================================
+           SCROLL PROGRESS
+           ============================================= */
+        .scroll-progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--grad); z-index: 10001; width: 0; }
+
+        /* =============================================
+           NAVIGATION
+           ============================================= */
+        .nav {
+            position: fixed; top: 0; width: 100%; padding: 1.5rem 3rem;
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 1000; backdrop-filter: blur(20px);
+            background: rgba(5,5,16,0.7); border-bottom: 1px solid var(--border);
+            opacity: 0; transform: translateY(-20px);
+        }
+        .nav-logo {
+            font-family: var(--fm); font-size: 1.2rem; font-weight: 700; color: var(--accent);
+        }
+        .nav-logo::after { content: '_'; animation: blink 1s step-end infinite; }
+        @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+
+        .nav-links { display: flex; gap: 2.5rem; }
+        .nav-links a {
+            font-size: 0.8rem; font-weight: 500; letter-spacing: 0.12em;
+            text-transform: uppercase; color: var(--text-dim);
+            transition: color 0.3s; position: relative;
+        }
+        .nav-links a::after {
+            content: ''; position: absolute; bottom: -4px; left: 0;
+            width: 0; height: 2px; background: var(--grad); transition: width 0.3s;
+        }
+        .nav-links a:hover { color: var(--text); }
+        .nav-links a:hover::after { width: 100%; }
+
+        .nav-toggle { display: none; flex-direction: column; gap: 5px; cursor: pointer; z-index: 1001; }
+        .nav-toggle span { width: 25px; height: 2px; background: var(--text); transition: 0.3s; }
+
+        /* =============================================
+           HERO
+           ============================================= */
+        .hero {
+            position: relative; min-height: 100vh;
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
+        }
+        #heroCanvas { position: absolute; inset: 0; z-index: 0; }
+        .hero-content { position: relative; z-index: 2; text-align: center; max-width: 1000px; padding: 0 2rem; }
+
+        .hero-greeting {
+            font-family: var(--fm); font-size: 1rem; color: var(--accent);
+            margin-bottom: 2rem; opacity: 0; transform: translateY(30px);
+        }
+        .hero-name {
+            font-family: var(--fh); font-size: clamp(2rem, 5vw, 4.5rem); font-weight: 800;
+            line-height: 1.05; margin-bottom: 1.5rem;
+            color: #fff; perspective: 600px;
+        }
+        .hero-name .char {
+            display: inline-block; opacity: 0; transform: translateY(100px) rotateX(90deg);
+            color: #fff; text-shadow: 0 0 60px rgba(0,240,255,0.4), 0 0 120px rgba(123,97,255,0.2);
+        }
+        .hero-name .char-space { width: 0.25em; }
+
+        .hero-role {
+            font-family: var(--fh); font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+            font-weight: 300; color: var(--text-dim); margin-bottom: 1.5rem;
+            opacity: 0; transform: translateY(30px);
+        }
+        .hero-role-accent { color: var(--accent); font-weight: 500; }
+        .hero-desc {
+            font-size: 1rem; color: var(--text-muted); max-width: 550px;
+            margin: 0 auto 2.5rem; line-height: 1.8;
+            opacity: 0; transform: translateY(30px);
+        }
+        .hero-cta { display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; opacity: 0; transform: translateY(30px); }
+
+        .scroll-down {
+            position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%);
+            display: flex; flex-direction: column; align-items: center; gap: 0.5rem; opacity: 0;
+        }
+        .scroll-down-text { font-family: var(--fm); font-size: 0.7rem; color: var(--text-muted); letter-spacing: 0.2em; text-transform: uppercase; }
+        .scroll-down-line { width: 1px; height: 50px; background: linear-gradient(to bottom, var(--accent), transparent); animation: scrollPulse 2s ease infinite; }
+        @keyframes scrollPulse { 0%,100% { opacity: 1; transform: scaleY(1); } 50% { opacity: 0.3; transform: scaleY(0.5); } }
+
+        /* =============================================
+           BUTTONS
+           ============================================= */
+        .btn {
+            display: inline-block; padding: 1rem 2.5rem; border-radius: 50px;
+            font-family: var(--fh); font-size: 0.95rem; font-weight: 600;
+            cursor: none; transition: all 0.4s; position: relative; overflow: hidden; border: none;
+        }
+        .btn-primary { background: var(--grad); color: #fff; box-shadow: 0 4px 25px rgba(0,240,255,0.2); }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 8px 40px rgba(0,240,255,0.35); }
+        .btn-outline { background: transparent; color: var(--text); border: 1px solid rgba(0,240,255,0.3); }
+        .btn-outline:hover { border-color: var(--accent); background: rgba(0,240,255,0.05); transform: translateY(-3px); }
+        .btn-ripple {
+            position: absolute; border-radius: 50%; background: rgba(255,255,255,0.3);
+            transform: scale(0); animation: ripple 0.6s linear; pointer-events: none;
+        }
+        @keyframes ripple { to { transform: scale(4); opacity: 0; } }
+
+        /* =============================================
+           SHARED SECTION STYLES
+           ============================================= */
+        section { position: relative; }
+        .section-label {
+            font-family: var(--fm); font-size: 0.75rem; letter-spacing: 0.3em;
+            text-transform: uppercase; color: var(--accent);
+            display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;
+        }
+        .section-label::before { content: ''; width: 40px; height: 1px; background: var(--accent); }
+        .section-label::after { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, var(--accent), transparent); }
+        .section-title { font-family: var(--fh); font-size: clamp(2rem, 4vw, 3.5rem); font-weight: 700; line-height: 1.1; }
+        .gradient-text { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .section-header { margin-bottom: 3rem; }
+
+        /* Big background watermark text */
+        .contact::before {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-family: var(--fh); font-size: clamp(8rem, 20vw, 20rem); font-weight: 800;
+            color: rgba(255,255,255,0.015); pointer-events: none; white-space: nowrap; z-index: 0;
+            content: 'HELLO';
+        }
+
+
+        /* =============================================
+           SKILLS — FIREWORKS + LAPTOP
+           ============================================= */
+        .skills { position: relative; height: 100vh; background: var(--bg); overflow: hidden; display: flex; flex-direction: column; }
+        .skills-header { padding: 2.5rem 8% 1rem; z-index: 10; flex-shrink: 0; }
+        .skills-body { flex: 1; display: flex; overflow: hidden; }
+
+        /* Left half — wireframe laptop */
+        .skills-laptop-wrap {
+            width: 50%; display: flex; align-items: center; justify-content: center;
+            position: relative; z-index: 5;
+        }
+        .laptop-frame {
+            position: relative; width: 80%; max-width: 520px;
+        }
+        /* Laptop screen bezel */
+        .laptop-screen {
+            position: relative; width: 100%; padding-top: 62.5%; /* 16:10 aspect */
+            border: 2px solid rgba(0,240,255,0.25); border-radius: 8px 8px 0 0;
+            background: #08081a; overflow: hidden;
+            box-shadow: 0 0 30px rgba(0,240,255,0.06), inset 0 0 40px rgba(0,0,0,0.5);
+        }
+        .laptop-screen-inner {
+            position: absolute; inset: 6px; border-radius: 4px; overflow: hidden;
+            background: #0a0a1a;
+        }
+        .laptop-screen-inner img {
+            width: 100%; height: 100%; object-fit: cover;
+            opacity: 0; transition: opacity 0.6s ease;
+            position: absolute; inset: 0;
+        }
+        .laptop-screen-inner img.active { opacity: 1; }
+        /* Scanline overlay */
+        .laptop-screen-inner::after {
+            content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,240,255,0.015) 2px,
+                rgba(0,240,255,0.015) 4px
+            );
+        }
+        /* Laptop base/keyboard */
+        .laptop-base {
+            width: 110%; margin-left: -5%; height: 12px;
+            background: linear-gradient(180deg, rgba(0,240,255,0.12), rgba(0,240,255,0.03));
+            border: 1px solid rgba(0,240,255,0.15); border-top: none;
+            border-radius: 0 0 12px 12px;
+        }
+        /* Laptop hinge notch */
+        .laptop-notch {
+            width: 20%; height: 4px; margin: 0 auto;
+            background: rgba(0,240,255,0.08); border-radius: 0 0 4px 4px;
+        }
+        /* Project label under laptop */
+        .laptop-project-label {
+            text-align: center; margin-top: 1.5rem;
+            font-family: var(--fm); font-size: 0.75rem; color: var(--text-muted);
+            transition: color 0.4s, opacity 0.4s; opacity: 0;
+        }
+        .laptop-project-label.active { opacity: 1; color: var(--accent); }
+        .laptop-project-name {
+            display: block; font-family: var(--fh); font-size: 1.1rem;
+            font-weight: 600; color: var(--text); margin-top: 0.3rem;
+        }
+
+        /* Right half — fireworks */
+        .skills-stage {
+            width: 50%; position: relative; overflow: hidden;
+        }
+        #fireworksCanvas { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; display: block; }
+
+        .skills-timeline { position: absolute; bottom: 10%; left: 8%; right: 8%; height: 60px; z-index: 10; }
+        .timeline-track { position: absolute; bottom: 28px; left: 0; right: 0; height: 2px; background: var(--text-muted); opacity: 0.25; }
+        .timeline-progress { position: absolute; bottom: 28px; left: 0; height: 2px; background: var(--accent); width: 0; }
+        .timeline-dot {
+            position: absolute; bottom: 23px; left: 0; width: 12px; height: 12px;
+            border-radius: 50%; background: var(--accent);
+            box-shadow: 0 0 15px var(--accent), 0 0 40px rgba(0,240,255,0.3);
+            transform: translateX(-50%);
+        }
+        .timeline-marker { position: absolute; bottom: 0; transform: translateX(-50%); text-align: center; }
+        .timeline-marker-pip {
+            display: block; width: 6px; height: 6px; border-radius: 50%;
+            background: var(--text-muted); margin: 0 auto 8px;
+            transition: background 0.3s, box-shadow 0.3s, transform 0.3s;
+        }
+        .timeline-marker.hit .timeline-marker-pip { background: var(--accent); box-shadow: 0 0 10px var(--accent); transform: scale(1.5); }
+        .timeline-marker-year { font-family: var(--fm); font-size: 0.7rem; color: var(--text-muted); transition: color 0.3s; }
+        .timeline-marker.hit .timeline-marker-year { color: var(--accent); }
+
+        .tl-pos-1 { left: 0%; }
+        .tl-pos-2 { left: 25%; }
+        .tl-pos-3 { left: 50%; }
+        .tl-pos-4 { left: 75%; }
+        .tl-pos-5 { left: 100%; }
+
+        /* =============================================
+           EXPERIENCE — 3D GLOBE
+           ============================================= */
+        .experience { position: relative; height: 100vh; background: var(--bg2); overflow: hidden; display: flex; flex-direction: column; }
+        #expStarsCanvas { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+        .exp-header { padding: 2.5rem 8% 1rem; z-index: 10; flex-shrink: 0; position: relative; }
+        .exp-body { flex: 1; position: relative; display: flex; overflow: hidden; z-index: 5; }
+        #globeCanvas { width: 60%; height: 100%; display: block; flex-shrink: 0; }
+
+        .exp-cards { width: 40%; position: relative; display: flex; align-items: center; justify-content: center; padding: 0 2rem; z-index: 10; }
+        .exp-card {
+            position: absolute; top: 50%; left: 0; width: 100%;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 16px; padding: 2.5rem; opacity: 0; transform: translateY(-50%) translateX(60px);
+        }
+        .exp-card-date { font-family: var(--fm); font-size: 0.8rem; color: var(--accent); margin-bottom: 0.5rem; }
+        .exp-card-role { font-family: var(--fh); font-size: 1.3rem; font-weight: 700; margin-bottom: 0.3rem; }
+        .exp-card-company { color: var(--accent2); font-size: 1rem; margin-bottom: 1.5rem; }
+        .exp-card-details li {
+            color: var(--text-dim); font-size: 0.85rem; line-height: 1.7;
+            padding-left: 1.2rem; margin-bottom: 0.4rem; position: relative;
+        }
+        .exp-card-details li::before { content: '▹'; color: var(--accent); position: absolute; left: 0; }
+
+        .exp-location-label {
+            position: absolute; z-index: 15; padding: 0.4rem 0.8rem;
+            background: rgba(0,240,255,0.1); border: 1px solid rgba(0,240,255,0.2);
+            border-radius: 8px; font-family: var(--fm); font-size: 0.65rem;
+            color: var(--accent); pointer-events: none; opacity: 0;
+            white-space: nowrap;
+        }
+
+        /* =============================================
+           EDUCATION
+           ============================================= */
+        /* =============================================
+           CONTACT
+           ============================================= */
+        .contact {
+            padding: 8rem 3rem; text-align: center; min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            position: relative; overflow: hidden;
+        }
+        .contact-inner { max-width: 800px; position: relative; z-index: 1; }
+        .contact-label { justify-content: center; }
+        .contact-title { font-family: var(--fh); font-size: clamp(1.8rem,3.5vw,3rem); font-weight: 800; line-height: 1.15; margin: 2rem 0; }
+        .contact-line { display: block; }
+        .contact-line-accent { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .contact-desc { font-size: 1.1rem; color: var(--text-dim); margin-bottom: 3rem; line-height: 1.8; }
+        .contact-links { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 3rem; }
+        .contact-link {
+            display: flex; align-items: center; gap: 0.75rem;
+            padding: 0.8rem 1.5rem; background: var(--bg-card);
+            border: 1px solid var(--border); border-radius: 50px;
+            font-size: 0.9rem; color: var(--text-dim); transition: all 0.4s;
+        }
+        .contact-link:hover { border-color: var(--accent); color: var(--text); transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,240,255,0.1); }
+        .contact-link-icon { font-family: var(--fm); font-weight: 700; color: var(--accent); }
+
+        /* =============================================
+           FOOTER
+           ============================================= */
+        .footer { padding: 2rem 3rem; text-align: center; border-top: 1px solid var(--border); }
+        .footer-text { font-family: var(--fm); font-size: 0.8rem; color: var(--text-muted); }
+        .footer-heart { color: var(--accent3); display: inline-block; animation: heartbeat 1.5s ease infinite; }
+        @keyframes heartbeat { 0%,100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+        .footer-copy { font-family: var(--fm); font-size: 0.7rem; color: var(--text-muted); margin-top: 0.5rem; }
+
+        /* =============================================
+           RESPONSIVE
+           ============================================= */
+        @media (max-width: 1024px) {
+            .exp-body { flex-direction: column; }
+            #globeCanvas { width: 100%; height: 50%; flex-shrink: 0; }
+            .exp-cards { width: 100%; flex: 1; padding: 1rem; }
+        }
+        @media (max-width: 768px) {
+            .nav { padding: 1rem 1.5rem; }
+            .nav-links { display: none; }
+            .nav-toggle { display: flex; }
+            .nav-links.open {
+                display: flex; flex-direction: column; position: fixed; inset: 0;
+                background: rgba(5,5,16,0.97); backdrop-filter: blur(20px);
+                justify-content: center; align-items: center; gap: 2rem; z-index: 1000;
+            }
+            .nav-links.open a { font-size: 1.5rem; }
+            .hero-name { font-size: clamp(1.8rem, 7vw, 2.5rem); }
+            .cursor-dot, .cursor-ring { display: none; }
+            body { cursor: auto; }
+            #globeCanvas { width: 100%; height: 45%; }
+            .exp-cards { width: 92%; left: 4%; right: 4%; }
+            .skills-body { flex-direction: column; }
+            .skills-laptop-wrap { width: 100%; height: 40%; }
+            .skills-stage { width: 100%; height: 60%; }
+            .skills-header { padding-left: 5%; padding-right: 5%; }
+            .skills-timeline { left: 5%; right: 5%; }
+        }
+        @media (max-width: 480px) {
+            .contact-links { flex-direction: column; align-items: center; }
+            .hero-cta { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== LOADER ===== -->
+    <div class="loader" id="loader">
+        <div class="loader-top"></div>
+        <div class="loader-bottom"></div>
+        <div class="loader-count" id="loaderCount">0</div>
+        <div class="loader-line" id="loaderLine"></div>
+    </div>
+
+    <!-- ===== CURSOR ===== -->
+    <div class="cursor-dot" id="cursorDot"></div>
+    <div class="cursor-ring" id="cursorRing"></div>
+
+    <!-- ===== SCROLL PROGRESS ===== -->
+    <div class="scroll-progress" id="scrollProgress"></div>
+
+    <!-- ===== NAV ===== -->
+    <nav class="nav" id="nav">
+        <a href="#" class="nav-logo">VF</a>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="#skills">Skills</a></li>
+            <li><a href="#experience">Experience</a></li>
+            <li><a href="#contact">Contact</a></li>
+        </ul>
+        <div class="nav-toggle" id="navToggle"><span></span><span></span><span></span></div>
+    </nav>
+
+    <!-- ===== HERO ===== -->
+    <section class="hero" id="hero">
+        <canvas id="heroCanvas"></canvas>
+        <div class="hero-content">
+            <p class="hero-greeting">&lt; Hello, World! /&gt;</p>
+            <h1 class="hero-name" id="heroName">Vinicius Ferreira</h1>
+            <p class="hero-role">Senior <span class="hero-role-accent">Full Stack Engineer</span></p>
+            <p class="hero-desc">Crafting scalable, high-performance web applications with 8+ years of expertise in TypeScript, React, Node.js &amp; Python. Based in Curitiba, Brazil — building for the world.</p>
+            <div class="hero-cta">
+                <a href="#contact" class="btn btn-primary">Get In Touch</a>
+                <a href="#experience" class="btn btn-outline">View My Work</a>
+            </div>
+        </div>
+        <div class="scroll-down"><span class="scroll-down-text">Scroll</span><div class="scroll-down-line"></div></div>
+    </section>
+
+
+    <!-- ===== SKILLS (LAPTOP + FIREWORKS) ===== -->
+    <section class="skills" id="skills">
+        <div class="section-header skills-header">
+            <span class="section-label">My Arsenal</span>
+            <h2 class="section-title">Skills Over <span class="gradient-text">Time</span></h2>
+        </div>
+        <div class="skills-body">
+            <!-- Left half: wireframe laptop with project screenshots -->
+            <div class="skills-laptop-wrap">
+                <div class="laptop-frame">
+                    <div class="laptop-screen">
+                        <div class="laptop-screen-inner" id="laptopScreen">
+                            <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=500&fit=crop&q=80" alt="HTML Portfolio" data-year="2017" class="active">
+                            <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=500&fit=crop&q=80" alt="React Dashboard" data-year="2019">
+                            <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=500&fit=crop&q=80" alt="Cloud Platform" data-year="2021">
+                            <img src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&h=500&fit=crop&q=80" alt="Enterprise System" data-year="2023">
+                            <img src="https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=500&fit=crop&q=80" alt="AI Dashboard" data-year="2025">
+                        </div>
+                    </div>
+                    <div class="laptop-base">
+                        <div class="laptop-notch"></div>
+                    </div>
+                    <div class="laptop-project-label" id="laptopLabel">
+                        <span>Featured Project</span>
+                        <span class="laptop-project-name" id="laptopProjectName">HTML + CSS Portfolio</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Right half: fireworks -->
+            <div class="skills-stage">
+                <canvas id="fireworksCanvas"></canvas>
+                <div class="skills-timeline" id="skillsTimeline">
+                    <div class="timeline-track"></div>
+                    <div class="timeline-progress" id="timelineProgress"></div>
+                    <div class="timeline-dot" id="timelineDot"></div>
+                    <div class="timeline-marker tl-pos-1" data-year="2017"><span class="timeline-marker-pip"></span><span class="timeline-marker-year">2017</span></div>
+                    <div class="timeline-marker tl-pos-2" data-year="2019"><span class="timeline-marker-pip"></span><span class="timeline-marker-year">2019</span></div>
+                    <div class="timeline-marker tl-pos-3" data-year="2021"><span class="timeline-marker-pip"></span><span class="timeline-marker-year">2021</span></div>
+                    <div class="timeline-marker tl-pos-4" data-year="2023"><span class="timeline-marker-pip"></span><span class="timeline-marker-year">2023</span></div>
+                    <div class="timeline-marker tl-pos-5" data-year="2025"><span class="timeline-marker-pip"></span><span class="timeline-marker-year">2025</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== EXPERIENCE (3D GLOBE) ===== -->
+    <section class="experience" id="experience">
+        <canvas id="expStarsCanvas"></canvas>
+        <div class="section-header exp-header">
+            <span class="section-label">Career Path</span>
+            <h2 class="section-title">Work <span class="gradient-text">Experience</span></h2>
+        </div>
+        <div class="exp-body">
+            <canvas id="globeCanvas"></canvas>
+            <div class="exp-cards" id="expCards">
+            <div class="exp-card exp-card-0">
+                <div class="exp-card-date">Jun 2019 — Aug 2021</div>
+                <h3 class="exp-card-role">Full Stack Engineer</h3>
+                <div class="exp-card-company">White Prompt — On-site, Brazil</div>
+                <ul class="exp-card-details">
+                    <li>Built web apps for multiple clients using React.js, TypeScript, Node.js, and Python.</li>
+                    <li>Developed backend APIs integrating PostgreSQL and MongoDB.</li>
+                    <li>Implemented responsive UIs collaborating closely with designers.</li>
+                    <li>Integrated third-party services: auth, payments, analytics.</li>
+                </ul>
+            </div>
+            <div class="exp-card exp-card-1">
+                <div class="exp-card-date">Sep 2021 — Jan 2024</div>
+                <h3 class="exp-card-role">Full Stack Engineer</h3>
+                <div class="exp-card-company">Scaleflex — Remote, USA</div>
+                <ul class="exp-card-details">
+                    <li>Built core backend for cloud Visual Experience Platform on AWS.</li>
+                    <li>Implemented content pipelines using Python, Spark, Airflow.</li>
+                    <li>Delivered event-driven processing with Kafka at scale.</li>
+                    <li>Shipped media features with React.js + Node.js microservices.</li>
+                </ul>
+            </div>
+            <div class="exp-card exp-card-2">
+                <div class="exp-card-date">Jan 2024 — Jan 2025</div>
+                <h3 class="exp-card-role">Full Stack Engineer</h3>
+                <div class="exp-card-company">UrbanInfluence — Remote, USA</div>
+                <ul class="exp-card-details">
+                    <li>Led architecture of backend systems for internal platforms.</li>
+                    <li>Designed scalable services with Node.js and TypeScript.</li>
+                    <li>Owned data modeling with PostgreSQL, optimized queries.</li>
+                    <li>Applied async processing and workflow automation.</li>
+                </ul>
+            </div>
+            <div class="exp-card exp-card-3">
+                <div class="exp-card-date">Feb 2025 — Present</div>
+                <h3 class="exp-card-role">Full Stack Engineer</h3>
+                <div class="exp-card-company">MiraiCore JP — Remote, Japan</div>
+                <ul class="exp-card-details">
+                    <li>Designing scalable backend services using Node.js and Python.</li>
+                    <li>Building interactive dashboards with React and TypeScript.</li>
+                    <li>Collaborating with distributed teams across Japan, EU, and US.</li>
+                    <li>Optimizing data flows for high-volume operational systems.</li>
+                </ul>
+            </div>
+        </div>
+        </div>
+    </section>
+
+    <!-- ===== CONTACT ===== -->
+    <section class="contact" id="contact">
+        <div class="contact-inner">
+            <span class="section-label contact-label">Get In Touch</span>
+            <h2 class="contact-title">
+                <span class="contact-line">Let's build</span>
+                <span class="contact-line">something</span>
+                <span class="contact-line contact-line-accent">extraordinary.</span>
+            </h2>
+            <p class="contact-desc">Always open to new projects, creative ideas, or opportunities to be part of something amazing. Say hello!</p>
+            <div class="contact-links">
+                <a href="mailto:the.vinicius.creative@gmail.com" class="contact-link"><span class="contact-link-icon">✉</span><span>the.vinicius.creative@gmail.com</span></a>
+                <a href="https://linkedin.com/in/vinicius-ferreira-581b853a9" target="_blank" rel="noopener" class="contact-link"><span class="contact-link-icon">in</span><span>LinkedIn</span></a>
+                <a href="tel:+5513981222843" class="contact-link"><span class="contact-link-icon">☎</span><span>+55 13 98122-2843</span></a>
+            </div>
+            <a href="mailto:the.vinicius.creative@gmail.com" class="btn btn-primary">Say Hello 👋</a>
+        </div>
+    </section>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="footer">
+        <p class="footer-text">Designed &amp; Built by Vinicius Ferreira with <span class="footer-heart">♥</span></p>
+        <p class="footer-copy">© 2025 — All rights reserved</p>
+    </footer>
+
+    <!-- =============================================
+         SCRIPTS
+         ============================================= -->
+    <script>
+    (function() {
+        'use strict';
+        gsap.registerPlugin(ScrollTrigger);
+
+        const isMobile = window.innerWidth <= 768;
+        let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
+
+        /* ===========================================
+           UTILITIES
+           =========================================== */
+        function hexToRgb(hex) {
+            const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+            return {r,g,b};
+        }
+        function latLonToVec3(lat, lon, r) {
+            const phi = (90 - lat) * Math.PI / 180;
+            const theta = (lon + 180) * Math.PI / 180;
+            return new THREE.Vector3(-r*Math.sin(phi)*Math.cos(theta), r*Math.cos(phi), r*Math.sin(phi)*Math.sin(theta));
+        }
+
+        /* ===========================================
+           PRELOAD HEAVY ASSETS DURING LOADER
+           =========================================== */
+        var preloadedEarthTex = null;
+        var preloadedTopoData = null;
+        (function preloadAssets() {
+            // Preload earth texture
+            if(typeof THREE !== 'undefined') {
+                var texLoader = new THREE.TextureLoader();
+                preloadedEarthTex = texLoader.load('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-night.jpg');
+            }
+            // Preload TopoJSON data
+            fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
+                .then(function(r){ return r.json(); })
+                .then(function(data){ preloadedTopoData = data; })
+                .catch(function(){});
+        })();
+
+        /* ===========================================
+           LOADER
+           =========================================== */
+        function initLoader() {
+            const cnt = {v:0};
+            const countEl = document.getElementById('loaderCount');
+            gsap.to(cnt, {v:100, duration:2.4, ease:'power2.inOut', onUpdate:()=>{ countEl.textContent = Math.floor(cnt.v); }});
+            gsap.to('#loaderLine', {width:'100%', duration:2.4, ease:'power2.inOut'});
+            gsap.to('.loader-count', {opacity:0, duration:0.3, delay:2.6});
+            gsap.to('#loaderLine', {opacity:0, duration:0.3, delay:2.6});
+            gsap.to('.loader-top', {yPercent:-100, duration:1, ease:'power4.inOut', delay:2.8});
+            gsap.to('.loader-bottom', {yPercent:100, duration:1, ease:'power4.inOut', delay:2.8,
+                onComplete:()=>{ document.getElementById('loader').style.display='none'; }
+            });
+            gsap.delayedCall(3.2, initHeroAnimations);
+        }
+
+        /* ===========================================
+           TEXT SPLITTING
+           =========================================== */
+        function splitText(el) {
+            const text = el.textContent; el.textContent = ''; el.setAttribute('aria-label', text);
+            [...text].forEach(c => {
+                const s = document.createElement('span');
+                if(c===' '){s.className='char char-space'; s.innerHTML='&nbsp;';}
+                else{s.className='char'; s.textContent=c;}
+                el.appendChild(s);
+            });
+        }
+        splitText(document.getElementById('heroName'));
+
+        /* ===========================================
+           HERO ANIMATIONS (after loader)
+           =========================================== */
+        function initHeroAnimations() {
+            const tl = gsap.timeline();
+            tl.to('.hero-greeting', {opacity:1, y:0, duration:0.8, ease:'power3.out'})
+              .to('.hero-name .char', {opacity:1, y:0, rotateX:0, stagger:0.04, duration:1.2, ease:'power4.out'}, '-=0.4')
+              .to('.hero-role', {opacity:1, y:0, duration:0.8, ease:'power3.out'}, '-=0.6')
+              .to('.hero-desc', {opacity:1, y:0, duration:0.8, ease:'power3.out'}, '-=0.4')
+              .to('.hero-cta', {opacity:1, y:0, duration:0.8, ease:'power3.out'}, '-=0.4')
+              .to('.scroll-down', {opacity:1, duration:0.8}, '-=0.2')
+              .to('.nav', {opacity:1, y:0, duration:0.8, ease:'power3.out'}, '-=0.8');
+        }
+
+        /* ===========================================
+           CUSTOM CURSOR
+           =========================================== */
+        function initCursor() {
+            if(isMobile) return;
+            const dot = document.getElementById('cursorDot'), ring = document.getElementById('cursorRing');
+            let rx=0,ry=0;
+            document.addEventListener('mousemove', e=>{mouseX=e.clientX;mouseY=e.clientY;dot.style.left=mouseX+'px';dot.style.top=mouseY+'px';});
+            (function anim(){rx+=(mouseX-rx)*0.12;ry+=(mouseY-ry)*0.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(anim);})();
+            document.querySelectorAll('a,button,.btn,.nav-toggle,.contact-link').forEach(el=>{
+                el.addEventListener('mouseenter',()=>{dot.classList.add('hover');ring.classList.add('hover');});
+                el.addEventListener('mouseleave',()=>{dot.classList.remove('hover');ring.classList.remove('hover');});
+            });
+        }
+
+        /* ===========================================
+           THREE.JS — HERO SCENE (3D Player Wireframe + Starfield)
+           =========================================== */
+        function initHeroScene() {
+            if(typeof THREE==='undefined') return;
+            const canvas = document.getElementById('heroCanvas');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(50, canvas.parentElement.clientWidth/canvas.parentElement.clientHeight, 0.1, 100);
+            camera.position.z = 4.8;
+            camera.position.y = 0.3;
+            const renderer = new THREE.WebGLRenderer({canvas, antialias:!isMobile, alpha:true});
+            const cW = canvas.parentElement.clientWidth, cH = canvas.parentElement.clientHeight;
+            renderer.setSize(cW, cH);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio,1.5));
+            canvas.style.width = cW + 'px'; canvas.style.height = cH + 'px';
+
+            const cyan = 0x00F0FF;
+            const heroMats = [];
+            let heroActive = true, time = 0;
+            const mainGroup = new THREE.Group();
+            scene.add(mainGroup);
+
+            /* ---- Starfield ---- */
+            const sGeo = new THREE.BufferGeometry();
+            const starCount = isMobile ? 400 : 800;
+            const sPos = new Float32Array(starCount * 3);
+            for(let i = 0; i < starCount; i++){
+                sPos[i*3] = (Math.random()-0.5) * 40;
+                sPos[i*3+1] = (Math.random()-0.5) * 40;
+                sPos[i*3+2] = (Math.random()-0.5) * 40;
+            }
+            sGeo.setAttribute('position', new THREE.Float32BufferAttribute(sPos, 3));
+            const starMat = new THREE.PointsMaterial({color:0xffffff, size:0.015, transparent:true, opacity:0.35});
+            scene.add(new THREE.Points(sGeo, starMat));
+            heroMats.push({m:starMat, o:0.35});
+
+            /* ---- Ground glow ring ---- */
+            var glowGeo = new THREE.RingGeometry(0.01, 2.0, 64);
+            var glowMat = new THREE.MeshBasicMaterial({color:cyan, transparent:true, opacity:0.04, side:THREE.DoubleSide});
+            var glowMesh = new THREE.Mesh(glowGeo, glowMat);
+            glowMesh.rotation.x = -Math.PI/2;
+            glowMesh.position.set(0, -2.0, 0);
+            mainGroup.add(glowMesh);
+            heroMats.push({m:glowMat, o:0.04});
+
+            /* ---- Load football.glb — Optimized Point Cloud (centered) ---- */
+            var playerGroup = new THREE.Group();
+            playerGroup.position.set(0, 0, 0);
+            mainGroup.add(playerGroup);
+            var heroMixer = null;
+            var heroClock = new THREE.Clock();
+
+            // Light point cloud material (no heavy wireframe)
+            var playerPtsMat = new THREE.PointsMaterial({color:cyan, size:0.012, transparent:true, opacity:0.6, sizeAttenuation:true});
+            // Subtle inner glow points (larger, dimmer)
+            var playerGlowMat = new THREE.PointsMaterial({color:cyan, size:0.04, transparent:true, opacity:0.08, sizeAttenuation:true});
+            heroMats.push({m:playerPtsMat, o:0.6}, {m:playerGlowMat, o:0.08});
+
+            // Helper: subsample geometry vertices (take every Nth point)
+            function subsampleGeometry(geometry, step) {
+                var pos = geometry.attributes.position;
+                var count = pos.count;
+                var sampled = [];
+                for(var i = 0; i < count; i += step) {
+                    sampled.push(pos.getX(i), pos.getY(i), pos.getZ(i));
+                }
+                var geo = new THREE.BufferGeometry();
+                geo.setAttribute('position', new THREE.Float32BufferAttribute(sampled, 3));
+                return geo;
+            }
+
+            if(typeof THREE.GLTFLoader !== 'undefined'){
+                var loader = new THREE.GLTFLoader();
+                loader.load('football.glb', function(gltf){
+                    var model = gltf.scene;
+                    model.traverse(function(child){
+                        if(child.isMesh || child.isSkinnedMesh){
+                            child.castShadow = false;
+                            child.receiveShadow = false;
+                            // Hide the original mesh (no wireframe rendering)
+                            child.material = new THREE.MeshBasicMaterial({visible:false});
+
+                            if(child.geometry){
+                                var totalVerts = child.geometry.attributes.position.count;
+                                // Subsample: take every 3rd vertex for detail points
+                                var step = totalVerts > 10000 ? 3 : (totalVerts > 5000 ? 2 : 1);
+                                var sampledGeo = subsampleGeometry(child.geometry, step);
+                                // Main point cloud (dense, small points)
+                                var pts = new THREE.Points(sampledGeo, playerPtsMat);
+                                pts.position.copy(child.position);
+                                pts.rotation.copy(child.rotation);
+                                pts.scale.copy(child.scale);
+                                child.parent.add(pts);
+
+                                // Glow layer (sparser, larger points for soft glow)
+                                var glowStep = step * 4;
+                                var glowGeo = subsampleGeometry(child.geometry, glowStep);
+                                var glowPts = new THREE.Points(glowGeo, playerGlowMat);
+                                glowPts.position.copy(child.position);
+                                glowPts.rotation.copy(child.rotation);
+                                glowPts.scale.copy(child.scale);
+                                child.parent.add(glowPts);
+                            }
+                        }
+                    });
+
+                    // Play animation if available
+                    if(gltf.animations && gltf.animations.length > 0){
+                        heroMixer = new THREE.AnimationMixer(model);
+                        var clip = gltf.animations[0];
+                        gltf.animations.forEach(function(c){
+                            var n = c.name.toLowerCase();
+                            if(n.indexOf('kick')>=0 || n.indexOf('idle')>=0 || n.indexOf('action')>=0) clip = c;
+                        });
+                        var action = heroMixer.clipAction(clip);
+                        action.play();
+                    }
+
+                    // Auto-scale to fit scene
+                    var box = new THREE.Box3().setFromObject(model);
+                    var size = box.getSize(new THREE.Vector3());
+                    var maxDim = Math.max(size.x, size.y, size.z);
+                    var scale = 3.5 / maxDim;
+                    model.scale.setScalar(scale);
+                    box.setFromObject(model);
+                    var center = box.getCenter(new THREE.Vector3());
+                    model.position.y -= center.y;
+                    model.position.y -= 0.2;
+
+                    playerGroup.add(model);
+                    console.log('football.glb loaded — optimized point cloud');
+                }, undefined, function(err){
+                    console.log('football.glb failed to load:', err);
+                });
+            }
+
+            /* ---- Animation ---- */
+            function animate() {
+                if(!heroActive) return;
+                requestAnimationFrame(animate);
+                time += 0.008;
+
+                // Update GLTF animation
+                if(heroMixer) heroMixer.update(heroClock.getDelta());
+
+                // Slow player rotation
+                playerGroup.rotation.y += 0.003;
+                // Gentle floating
+                playerGroup.position.y = Math.sin(time*0.5)*0.08;
+
+                // Mouse interaction
+                if(!isMobile){
+                    var mx = (mouseX/window.innerWidth-0.5)*0.4;
+                    var my = (mouseY/window.innerHeight-0.5)*0.4;
+                    mainGroup.rotation.y += (mx*0.3 - mainGroup.rotation.y*0.01)*0.03;
+                    mainGroup.rotation.x += (-my*0.15 - mainGroup.rotation.x*0.01)*0.03;
+                }
+                scene.rotation.y += 0.0002;
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            window.addEventListener('resize',()=>{
+                const w=canvas.parentElement.clientWidth, h=canvas.parentElement.clientHeight;
+                camera.aspect=w/h;
+                camera.updateProjectionMatrix();
+                renderer.setSize(w, h);
+                canvas.style.width=w+'px'; canvas.style.height=h+'px';
+            });
+
+            ScrollTrigger.create({trigger:'.hero', start:'top top', end:'bottom top',
+                onUpdate:s=>{
+                    const p=s.progress;
+                    mainGroup.scale.setScalar(1.0*(1-p*0.5));
+                    heroMats.forEach(function(h){ h.m.opacity = h.o * (1 - p); });
+                },
+                onLeave:()=>{heroActive=false;},
+                onEnterBack:()=>{heroActive=true;animate();}
+            });
+        }
+
+        /* ===========================================
+           FIREWORKS SYSTEM
+           =========================================== */
+        const skillsTimeline = [
+            {year:2017, skills:['HTML5','CSS3','JavaScript','jQuery','Bootstrap','PHP','MySQL','Sass']},
+            {year:2019, skills:['React','Python','Node.js','Git','Redux','Express','REST API','Linux']},
+            {year:2021, skills:['TypeScript','PostgreSQL','Docker','MongoDB','Vue.js','Jest','CI/CD','Webpack']},
+            {year:2023, skills:['AWS','GraphQL','Kafka','Redis','Terraform','Microservices','Go','Elasticsearch']},
+            {year:2025, skills:['Next.js','FastAPI','Cursor AI','K8s','Rust','GenAI','Serverless','dbt']},
+        ];
+
+        // Vibrant color palette for individual fireworks
+        const fwColorPalette = [
+            '#00F0FF', '#7B61FF', '#FF2D55', '#FFCA28', '#00E676',
+            '#FF6D00', '#E040FB', '#18FFFF', '#76FF03', '#FF4081',
+            '#536DFE', '#F50057', '#FFD740', '#64FFDA', '#B388FF',
+            '#FF9100', '#69F0AE', '#40C4FF', '#EA80FC', '#EEFF41'
+        ];
+        function pickSkillColor(idx) {
+            return fwColorPalette[idx % fwColorPalette.length];
+        }
+
+        class Rocket {
+            constructor(x, startY, targetY, onExplode) {
+                this.x=x; this.y=startY; this.targetY=targetY; this.onExplode=onExplode;
+                this.vy=-(Math.random()*3+8); this.trail=[]; this.active=true; this.exploded=false;
+            }
+            update() {
+                if(this.exploded) {
+                    // Rapidly fade remaining trail after explosion
+                    this.trail.forEach(t=>t.a-=0.15);
+                    this.trail=this.trail.filter(t=>t.a>0);
+                    return;
+                }
+                if(!this.active) return;
+                this.y+=this.vy;
+                this.trail.push({x:this.x+(Math.random()-0.5)*4, y:this.y, a:1, s:Math.random()*2+1});
+                this.trail.forEach(t=>t.a-=0.06);
+                this.trail=this.trail.filter(t=>t.a>0);
+                if(this.y<=this.targetY){
+                    this.active=false;
+                    this.exploded=true;
+                    this.onExplode(this.x,this.y);
+                }
+            }
+            draw(ctx) {
+                this.trail.forEach(t=>{
+                    ctx.beginPath(); ctx.arc(t.x,t.y,t.s,0,Math.PI*2);
+                    ctx.fillStyle='rgba(180,180,195,'+t.a*0.7+')'; ctx.fill();
+                });
+                if(this.active){ctx.beginPath();ctx.arc(this.x,this.y,3,0,Math.PI*2);ctx.fillStyle='rgba(200,200,210,0.8)';ctx.fill();}
+            }
+            get isDead(){return this.exploded && this.trail.length===0;}
+        }
+
+        // Explosion style generators — each returns an array of sparkle objects
+        const explosionStyles = {
+            // Classic radial burst
+            radial(cx, cy, color, count) {
+                const sparks = [];
+                for(let i=0;i<count;i++){
+                    const ang=Math.random()*Math.PI*2, spd=Math.random()*8+3;
+                    sparks.push({x:cx,y:cy,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,a:1,s:Math.random()*3+1,color});
+                }
+                return sparks;
+            },
+            // Ring burst — sparkles expand in a perfect ring
+            ring(cx, cy, color, count) {
+                const sparks = [];
+                for(let i=0;i<count;i++){
+                    const ang=(i/count)*Math.PI*2, spd=6+Math.random()*2;
+                    sparks.push({x:cx,y:cy,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,a:1,s:2.5,color,noGravity:true});
+                }
+                return sparks;
+            },
+            // Double ring — two concentric rings expanding at different speeds
+            doubleRing(cx, cy, color, count) {
+                const sparks = [];
+                const half=Math.floor(count/2);
+                const {r,g,b}=hexToRgb(color);
+                const innerColor='rgba('+r+','+g+','+b+',1)';
+                for(let i=0;i<half;i++){
+                    const ang=(i/half)*Math.PI*2;
+                    sparks.push({x:cx,y:cy,vx:Math.cos(ang)*4,vy:Math.sin(ang)*4,a:1,s:2,color,noGravity:true});
+                }
+                for(let i=0;i<half;i++){
+                    const ang=(i/half)*Math.PI*2+0.1;
+                    sparks.push({x:cx,y:cy,vx:Math.cos(ang)*8,vy:Math.sin(ang)*8,a:1,s:1.5,color:'#ffffff',noGravity:true});
+                }
+                return sparks;
+            },
+            // Spiral — sparkles spiral outward
+            spiral(cx, cy, color, count) {
+                const sparks = [];
+                for(let i=0;i<count;i++){
+                    const ang=(i/count)*Math.PI*6, spd=2+i*0.08;
+                    sparks.push({x:cx,y:cy,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,a:1,s:Math.random()*2+1,color,noGravity:true});
+                }
+                return sparks;
+            },
+            // Star pattern — sparkles in 5 or 6 pointed directions with fills between
+            starBurst(cx, cy, color, count) {
+                const sparks = [];
+                const points = 5 + Math.floor(Math.random()*3);
+                for(let i=0;i<count;i++){
+                    const arm = i % points;
+                    const baseAng = (arm/points)*Math.PI*2 - Math.PI/2;
+                    const spread = (Math.random()-0.5)*0.3;
+                    const spd = Math.random()*10+2;
+                    sparks.push({x:cx,y:cy,vx:Math.cos(baseAng+spread)*spd,vy:Math.sin(baseAng+spread)*spd,a:1,s:Math.random()*3+1,color});
+                }
+                return sparks;
+            },
+            // Cascade / willow — sparkles go up then drip down like a waterfall
+            cascade(cx, cy, color, count) {
+                const sparks = [];
+                for(let i=0;i<count;i++){
+                    const ang=(Math.random()-0.5)*Math.PI*0.8 - Math.PI/2;
+                    const spd=Math.random()*6+4;
+                    sparks.push({x:cx,y:cy,vx:Math.cos(ang)*spd*0.6,vy:Math.sin(ang)*spd,a:1,s:Math.random()*2+1.5,color,heavyGravity:true});
+                }
+                return sparks;
+            },
+            // Crackle — tiny rapid sparks that scatter in all directions with varying speeds
+            crackle(cx, cy, color, count) {
+                const sparks = [];
+                for(let i=0;i<count*1.5;i++){
+                    const ang=Math.random()*Math.PI*2;
+                    const spd=Math.random()*12+1;
+                    sparks.push({x:cx,y:cy,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,a:1,s:Math.random()*1.5+0.5,color,fastFade:true});
+                }
+                return sparks;
+            }
+        };
+        const explosionStyleNames = Object.keys(explosionStyles);
+
+        // Text appearance animation types
+        const textAnimTypes = ['scaleBounce','typewriter','rotateIn','waveIn','glitchIn','dropIn','elasticPop'];
+
+        // TextFirework — shows clear readable text with varied explosion & text animations
+        class TextFirework {
+            constructor(cx, cy, text, color) {
+                this.cx=cx; this.cy=cy; this.text=text; this.color=color;
+                this.timer=0; this.phase='burst'; this.alpha=0; this.scale=0;
+
+                // Pick a random explosion style
+                const styleName = explosionStyleNames[Math.floor(Math.random()*explosionStyleNames.length)];
+                this.sparkles = explosionStyles[styleName](cx, cy, color, 55 + Math.floor(Math.random()*30));
+
+                // Pick a random text animation type
+                this.textAnim = textAnimTypes[Math.floor(Math.random()*textAnimTypes.length)];
+                this.rotation = 0;
+                this.offsetY = 0;
+                this.visibleChars = 0;
+                this.glitchOffset = {x:0, y:0};
+            }
+            update() {
+                this.timer++;
+                this.sparkles.forEach(s=>{
+                    s.x+=s.vx; s.y+=s.vy;
+                    if(!s.noGravity) s.vy += s.heavyGravity ? 0.15 : 0.06;
+                    s.vx *= 0.99; s.vy *= 0.99;
+                    s.a -= s.fastFade ? 0.035 : 0.018;
+                });
+                this.sparkles=this.sparkles.filter(s=>s.a>0);
+
+                if(this.phase==='burst'){
+                    this.alpha=Math.min(1, this.alpha+0.05);
+                    // Text animation progress
+                    switch(this.textAnim){
+                        case 'scaleBounce':
+                            this.scale = Math.min(1, this.scale + 0.07);
+                            if(this.scale>=1 && this.timer>15) this.scale = 1 + Math.sin(this.timer*0.3)*0.05;
+                            break;
+                        case 'typewriter':
+                            this.scale=1;
+                            this.visibleChars = Math.min(this.text.length, Math.floor(this.timer/3));
+                            break;
+                        case 'rotateIn':
+                            this.scale = Math.min(1, this.scale+0.06);
+                            this.rotation = (1-this.scale)*Math.PI*2;
+                            break;
+                        case 'waveIn':
+                            this.scale=1;
+                            break;
+                        case 'glitchIn':
+                            this.scale=1;
+                            if(this.timer<18){
+                                this.glitchOffset={x:(Math.random()-0.5)*12, y:(Math.random()-0.5)*8};
+                            } else {
+                                this.glitchOffset={x:0,y:0};
+                            }
+                            break;
+                        case 'dropIn':
+                            const dropT = Math.min(1, this.timer/18);
+                            this.scale=1;
+                            this.offsetY = -80*(1-this.easeOutBounce(dropT));
+                            break;
+                        case 'elasticPop':
+                            const elasticT = Math.min(1, this.timer/22);
+                            this.scale = this.easeOutElastic(elasticT);
+                            break;
+                    }
+                    if(this.timer>25) this.phase='hold';
+                } else if(this.phase==='hold'){
+                    this.alpha=1; this.scale=1; this.rotation=0; this.offsetY=0;
+                    this.glitchOffset={x:0,y:0};
+                    this.visibleChars=this.text.length;
+                    if(this.timer>200) this.phase='fade';
+                } else if(this.phase==='fade'){
+                    this.alpha=Math.max(0, this.alpha-0.012);
+                }
+            }
+            easeOutBounce(t){
+                if(t<1/2.75) return 7.5625*t*t;
+                else if(t<2/2.75) return 7.5625*(t-=1.5/2.75)*t+0.75;
+                else if(t<2.5/2.75) return 7.5625*(t-=2.25/2.75)*t+0.9375;
+                else return 7.5625*(t-=2.625/2.75)*t+0.984375;
+            }
+            easeOutElastic(t){
+                if(t===0||t===1) return t;
+                return Math.pow(2,-10*t)*Math.sin((t-0.075)*(2*Math.PI)/0.3)+1;
+            }
+            draw(ctx) {
+                // Draw sparkles in grey with alpha
+                this.sparkles.forEach(s=>{
+                    ctx.beginPath();ctx.arc(s.x,s.y,s.s,0,Math.PI*2);
+                    ctx.fillStyle='rgba(180,180,195,'+Math.max(0,s.a*0.6)+')';ctx.fill();
+                });
+                if(this.alpha>0){
+                    ctx.save();
+                    ctx.globalAlpha=this.alpha;
+                    ctx.translate(this.cx + this.glitchOffset.x, this.cy + this.offsetY + this.glitchOffset.y);
+                    if(this.rotation) ctx.rotate(this.rotation);
+                    ctx.scale(this.scale||1, this.scale||1);
+                    ctx.shadowColor='rgba(150,150,160,0.15)';
+                    ctx.shadowBlur=10;
+                    ctx.font='bold 30px Syne,sans-serif';
+                    ctx.textAlign='center';
+                    ctx.textBaseline='middle';
+
+                    const displayText = this.textAnim==='typewriter' && this.phase==='burst'
+                        ? this.text.substring(0, this.visibleChars)
+                        : this.text;
+
+                    if(this.textAnim==='waveIn' && this.phase==='burst'){
+                        const letters = this.text.split('');
+                        const totalW = ctx.measureText(this.text).width;
+                        let xOff = -totalW/2;
+                        letters.forEach((ch,li)=>{
+                            const charW = ctx.measureText(ch).width;
+                            const wave = Math.sin(this.timer*0.2 - li*0.5)*8*(1-Math.min(1,this.timer/25));
+                            ctx.fillStyle='rgba(200,200,215,0.7)';
+                            ctx.fillText(ch, xOff+charW/2, wave);
+                            xOff+=charW;
+                        });
+                    } else {
+                        ctx.fillStyle='rgba(200,200,215,0.7)';
+                        ctx.fillText(displayText, 0, 0);
+                    }
+                    ctx.restore();
+                }
+            }
+            get isDead(){return this.phase==='fade'&&this.alpha<=0&&this.sparkles.length===0;}
+        }
+
+        let fwRockets=[], fwTexts=[], fwCanvas, fwCtx, fwAnimating=false;
+        let fwAutoPlayTimer = null;
+        let fwAutoPlayIndex = -1;
+
+        // Duration each year's fireworks display (ms)
+        const FW_YEAR_DURATION = 6000;
+
+        // Project names per year for the laptop label
+        const yearProjectNames = {
+            2017: 'HTML + CSS Portfolio',
+            2019: 'React Dashboard App',
+            2021: 'Cloud Media Platform',
+            2023: 'Enterprise Backend System',
+            2025: 'AI Powered Dashboard'
+        };
+
+        function updateLaptopScreen(year) {
+            var screenImgs = document.querySelectorAll('#laptopScreen img');
+            screenImgs.forEach(function(img) {
+                if(parseInt(img.dataset.year) === year) {
+                    img.classList.add('active');
+                } else {
+                    img.classList.remove('active');
+                }
+            });
+            var label = document.getElementById('laptopLabel');
+            var nameEl = document.getElementById('laptopProjectName');
+            if(label) label.classList.add('active');
+            if(nameEl) nameEl.textContent = yearProjectNames[year] || '';
+        }
+
+        function fwAutoPlayStep() {
+            fwAutoPlayIndex++;
+            if(fwAutoPlayIndex >= skillsTimeline.length) {
+                // Loop back to 2017 — restart from the beginning
+                fwAutoPlayIndex = -1;
+                fwRockets = [];
+                fwTexts = [];
+                if(fwCtx) fwCtx.clearRect(0,0,fwCanvas.width,fwCanvas.height);
+                document.getElementById('timelineProgress').style.width = '0%';
+                document.getElementById('timelineDot').style.left = '0%';
+                document.querySelectorAll('.timeline-marker').forEach(m=>m.classList.remove('hit'));
+                updateLaptopScreen(2017);
+                fwAutoPlayTimer = setTimeout(fwAutoPlayStep, 1200);
+                return;
+            }
+
+            // Clear previous fireworks
+            fwRockets = [];
+            fwTexts = [];
+
+            var yearData = skillsTimeline[fwAutoPlayIndex];
+
+            // Animate timeline bar to this year's position
+            const progress = fwAutoPlayIndex / (skillsTimeline.length - 1);
+            gsap.to('#timelineProgress', {width: (progress*100)+'%', duration: 0.8, ease:'power2.inOut'});
+            gsap.to('#timelineDot', {left: (progress*100)+'%', duration: 0.8, ease:'power2.inOut'});
+
+            // Light up timeline markers
+            document.querySelectorAll('.timeline-marker').forEach(m=>{
+                const yr = parseInt(m.dataset.year);
+                const matchIdx = skillsTimeline.findIndex(s=>s.year===yr);
+                if(matchIdx <= fwAutoPlayIndex) m.classList.add('hit');
+                else m.classList.remove('hit');
+            });
+
+            // Update laptop screenshot for this year
+            updateLaptopScreen(yearData.year);
+
+            // Launch fireworks for this year
+            launchFireworks(yearData);
+
+            // Schedule next year
+            fwAutoPlayTimer = setTimeout(fwAutoPlayStep, FW_YEAR_DURATION);
+        }
+
+        function startFwAutoPlay() {
+            // Reset everything
+            fwAutoPlayIndex = -1;
+            fwRockets = [];
+            fwTexts = [];
+            if(fwCtx) fwCtx.clearRect(0,0,fwCanvas.width,fwCanvas.height);
+
+            // Reset timeline UI
+            document.getElementById('timelineProgress').style.width = '0%';
+            document.getElementById('timelineDot').style.left = '0%';
+            document.querySelectorAll('.timeline-marker').forEach(m=>m.classList.remove('hit'));
+
+            // Reset laptop to first year
+            updateLaptopScreen(2017);
+
+            // Start animation loop
+            fwAnimating = true;
+            animateFireworks();
+
+            // Start auto-play sequence
+            fwAutoPlayTimer = setTimeout(fwAutoPlayStep, 600);
+        }
+
+        function stopFwAutoPlay() {
+            if(fwAutoPlayTimer) { clearTimeout(fwAutoPlayTimer); fwAutoPlayTimer = null; }
+            fwAnimating = false;
+            // Clear all fireworks history
+            fwRockets = [];
+            fwTexts = [];
+            floatingLogos = [];
+            fwAutoPlayIndex = -1;
+            if(fwCtx && fwCanvas) fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
+            // Reset timeline UI
+            var prog = document.getElementById('timelineProgress');
+            var dot = document.getElementById('timelineDot');
+            if(prog) prog.style.width = '0%';
+            if(dot) dot.style.left = '0%';
+            document.querySelectorAll('.timeline-marker').forEach(function(m){ m.classList.remove('hit'); });
+            // Reset laptop
+            updateLaptopScreen(2017);
+        }
+
+        function initFireworks() {
+            fwCanvas = document.getElementById('fireworksCanvas');
+            fwCtx = fwCanvas.getContext('2d');
+            sizeFireworksCanvas();
+            window.addEventListener('resize', sizeFireworksCanvas);
+
+            // Pin the skills section and auto-play fireworks
+            ScrollTrigger.create({
+                trigger:'.skills', start:'top top', end:'bottom top', pin:true,
+                onEnter:()=>{ startFwAutoPlay(); },
+                onLeave:()=>{ stopFwAutoPlay(); },
+                onEnterBack:()=>{ startFwAutoPlay(); },
+                onLeaveBack:()=>{ stopFwAutoPlay(); }
+            });
+        }
+
+        function sizeFireworksCanvas() {
+            if(!fwCanvas) return;
+            var parent = fwCanvas.closest('.skills-stage') || fwCanvas.parentElement;
+            var w = parent.offsetWidth || window.innerWidth;
+            var h = parent.offsetHeight || window.innerHeight;
+            fwCanvas.width = w;
+            fwCanvas.height = h;
+            fwCanvas.style.width = w + 'px';
+            fwCanvas.style.height = h + 'px';
+            fwStars = [];
+            floatingLogos = [];
+        }
+
+        // Generate well-distributed random positions (best-candidate sampling)
+        function distributedPositions(count, W, H) {
+            const padX = W * 0.1;
+            const topPad = H * 0.05;
+            // Timeline sits at bottom ~10% of stage + 60px height.
+            // Keep ALL firework targets at least 50px above the timeline top.
+            // Timeline top ≈ H * 0.90 - 60 = H * 0.82 roughly.
+            // So bottomLimit = H * 0.82 - 50 = safe area ends at ~H*0.75 max
+            const bottomLimit = Math.min(H * 0.62, H - 200);
+            const positions = [];
+            const minDist = Math.min(W, H) * 0.12;
+
+            for(let i = 0; i < count; i++) {
+                let bestPos = null;
+                let bestDist = -1;
+
+                // Try many candidates, pick the one farthest from all existing
+                const attempts = 30;
+                for(let a = 0; a < attempts; a++) {
+                    const cx = padX + Math.random() * (W - padX * 2);
+                    const cy = topPad + Math.random() * (bottomLimit - topPad);
+
+                    let nearest = Infinity;
+                    for(let j = 0; j < positions.length; j++) {
+                        const dx = positions[j].x - cx;
+                        const dy = positions[j].y - cy;
+                        nearest = Math.min(nearest, Math.sqrt(dx*dx + dy*dy));
+                    }
+
+                    if(nearest > bestDist) {
+                        bestDist = nearest;
+                        bestPos = {x: cx, y: cy};
+                    }
+                    if(nearest >= minDist) break;
+                }
+                positions.push(bestPos);
+            }
+            return positions;
+        }
+
+        function launchFireworks(yearData) {
+            const W=fwCanvas.width, H=fwCanvas.height;
+            const count = yearData.skills.length;
+            // Get random but well-spread positions across the full canvas
+            const positions = distributedPositions(count, W, H);
+
+            yearData.skills.forEach((skill,i)=>{
+                const pos = positions[i];
+                const color = 'rgba(200,200,215,0.7)';
+                setTimeout(()=>{
+                    fwRockets.push(new Rocket(pos.x, H, pos.y, (ex,ey)=>{
+                        fwTexts.push(new TextFirework(ex,ey,skill,color));
+                    }));
+                }, i*350);
+            });
+            // Update floating background images for this year
+            initFloatingLogos(yearData);
+        }
+
+        // Floating real project images as background
+        let fwStars = []; // tiny ambient stars
+        let floatingLogos = []; // floating image objects
+        let imageCache = {}; // cache loaded images
+
+        // Technology logo URLs per year (from devicon CDN)
+        const yearLogos = {
+            2017: [
+                {name:'HTML5', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg'},
+                {name:'CSS3', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg'},
+                {name:'JavaScript', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg'},
+                {name:'jQuery', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/jquery/jquery-original.svg'},
+                {name:'Bootstrap', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/bootstrap/bootstrap-original.svg'},
+                {name:'npm', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/npm/npm-original-wordmark.svg'}
+            ],
+            2019: [
+                {name:'React', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg'},
+                {name:'Python', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg'},
+                {name:'Node.js', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg'},
+                {name:'Git', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/git/git-original.svg'},
+                {name:'Express', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/express/express-original.svg'},
+                {name:'Flask', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/flask/flask-original.svg'}
+            ],
+            2021: [
+                {name:'TypeScript', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg'},
+                {name:'PostgreSQL', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg'},
+                {name:'Docker', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg'},
+                {name:'MongoDB', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mongodb/mongodb-original.svg'},
+                {name:'GraphQL', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/graphql/graphql-plain.svg'},
+                {name:'Linux', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linux/linux-original.svg'}
+            ],
+            2023: [
+                {name:'AWS', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/amazonwebservices/amazonwebservices-original-wordmark.svg'},
+                {name:'Redis', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/redis/redis-original.svg'},
+                {name:'Kubernetes', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg'},
+                {name:'Kafka', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/apachekafka/apachekafka-original.svg'},
+                {name:'Terraform', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/terraform/terraform-original.svg'},
+                {name:'Go', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/go/go-original.svg'}
+            ],
+            2025: [
+                {name:'Next.js', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nextjs/nextjs-original.svg'},
+                {name:'FastAPI', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/fastapi/fastapi-original.svg'},
+                {name:'Tailwind', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/tailwindcss/tailwindcss-original.svg'},
+                {name:'Figma', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/figma/figma-original.svg'},
+                {name:'Vercel', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/vercel/vercel-original.svg'},
+                {name:'Prisma', url:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/prisma/prisma-original.svg'}
+            ]
+        };
+
+        // Preload all images
+        function preloadLogos() {
+            Object.values(yearLogos).forEach(logos => {
+                logos.forEach(l => {
+                    if(!imageCache[l.url]) {
+                        const img = new Image();
+                        img.crossOrigin = 'anonymous';
+                        img.src = l.url;
+                        imageCache[l.url] = img;
+                    }
+                });
+            });
+        }
+        preloadLogos();
+
+        function initFwStars() {
+            fwStars = [];
+            const W = fwCanvas.width, H = fwCanvas.height;
+            for(let i=0; i<60; i++){
+                fwStars.push({
+                    x: Math.random()*W, y: Math.random()*H,
+                    r: Math.random()*1.2+0.2,
+                    twinkleSpeed: Math.random()*0.02+0.005,
+                    phase: Math.random()*Math.PI*2,
+                    baseAlpha: Math.random()*0.25+0.05
+                });
+            }
+        }
+
+        function initFloatingLogos(yearData) {
+            floatingLogos = [];
+            const W = fwCanvas.width, H = fwCanvas.height;
+            const logos = yearLogos[yearData.year] || [];
+            // Place more images, repeat if needed, for rich background
+            const items = [];
+            for(let r=0; r<3; r++) logos.forEach(l => items.push(l));
+            items.forEach((logo, i) => {
+                const imgSize = 40 + Math.random() * 50;
+                floatingLogos.push({
+                    img: imageCache[logo.url],
+                    name: logo.name,
+                    x: Math.random() * W,
+                    y: Math.random() * H,
+                    vx: (Math.random() - 0.5) * 0.3,
+                    vy: (Math.random() - 0.5) * 0.2,
+                    size: imgSize,
+                    alpha: 0,
+                    targetAlpha: 0.06 + Math.random() * 0.06,
+                    rotation: (Math.random() - 0.5) * 0.2,
+                    rotSpeed: (Math.random() - 0.5) * 0.0008,
+                    pulsePhase: Math.random() * Math.PI * 2,
+                    pulseSpeed: 0.01 + Math.random() * 0.015
+                });
+            });
+        }
+
+        function drawFwBackground(t) {
+            const W=fwCanvas.width, H=fwCanvas.height;
+            // Clear with transparency — fireworks overlay on experience section
+            fwCtx.clearRect(0,0,W,H);
+
+            // Tiny ambient stars
+            fwStars.forEach(s=>{
+                const alpha=s.baseAlpha+Math.sin(t*s.twinkleSpeed+s.phase)*s.baseAlpha*0.5;
+                fwCtx.beginPath();
+                fwCtx.arc(s.x,s.y,s.r,0,Math.PI*2);
+                fwCtx.fillStyle='rgba(180,190,255,'+Math.max(0,alpha)+')';
+                fwCtx.fill();
+            });
+
+            // Floating real project images
+            floatingLogos.forEach(logo => {
+                // Drift
+                logo.x += logo.vx;
+                logo.y += logo.vy;
+                logo.rotation += logo.rotSpeed;
+                // Fade in gently
+                logo.alpha += (logo.targetAlpha - logo.alpha) * 0.015;
+                // Pulse alpha subtly
+                const pulse = Math.sin(t * logo.pulseSpeed + logo.pulsePhase) * 0.02;
+                // Wrap around edges
+                if(logo.x < -logo.size) logo.x = W + logo.size * 0.5;
+                if(logo.x > W + logo.size) logo.x = -logo.size * 0.5;
+                if(logo.y < -logo.size) logo.y = H + logo.size * 0.5;
+                if(logo.y > H + logo.size) logo.y = -logo.size * 0.5;
+
+                if(logo.img && logo.img.complete && logo.img.naturalWidth > 0) {
+                    fwCtx.save();
+                    fwCtx.translate(logo.x, logo.y);
+                    fwCtx.rotate(logo.rotation);
+                    fwCtx.globalAlpha = Math.max(0, logo.alpha + pulse);
+                    fwCtx.drawImage(logo.img, -logo.size/2, -logo.size/2, logo.size, logo.size);
+                    fwCtx.restore();
+                }
+            });
+        }
+
+        let fwFrame=0;
+        function animateFireworks() {
+            if(!fwAnimating) return;
+            requestAnimationFrame(animateFireworks);
+            fwFrame++;
+            // Draw rich background instead of plain clearRect
+            if(fwStars.length===0) initFwStars();
+            drawFwBackground(fwFrame);
+            // Draw fireworks on top
+            fwRockets.forEach(r=>{r.update();r.draw(fwCtx);});
+            fwRockets=fwRockets.filter(r=>!r.isDead);
+            fwTexts.forEach(f=>{f.update();f.draw(fwCtx);});
+            fwTexts=fwTexts.filter(f=>!f.isDead);
+        }
+
+        /* ===========================================
+           3D GLOBE + FLYING PLANE
+           =========================================== */
+        const companies = [
+            {name:'White Prompt',lat:-25.43,lon:-49.27},
+            {name:'Scaleflex',lat:37.77,lon:-122.42},
+            {name:'UrbanInfluence',lat:47.61,lon:-122.33},
+            {name:'MiraiCore JP',lat:35.68,lon:139.65}
+        ];
+
+        let globeScene, globeCamera, globeRenderer, globeGroup, globePlane, globeArcs=[], globeActive=false;
+        let currentExpCard = -1;
+        let prevProgress = 0; // Track scroll direction
+        let arrivalRipples = []; // Ripple rings at arrival
+        let cometTrail = []; // Trailing particles behind star
+        let globeFrameCount = 0;
+        let traveledLines = []; // Overlay lines showing traveled path
+        let globeTargetRotY = null; // Target Y rotation to face a company
+        let globeAutoRotate = true; // Whether globe is auto-rotating
+        let globeRotYSmoothed = 0; // Smoothed rotation Y (avoids jitter)
+        let lastShowCompany = -1; // Track which company 'show' tween was already sent
+
+        /* ===========================================
+           EXPERIENCE STARFIELD + CONSTELLATIONS
+           =========================================== */
+        function initExpStars() {
+            var canvas = document.getElementById('expStarsCanvas');
+            if(!canvas) return;
+            var ctx = canvas.getContext('2d');
+            var expSection = canvas.closest('.experience');
+
+            function sizeCanvas() {
+                canvas.width = expSection.offsetWidth;
+                canvas.height = expSection.offsetHeight;
+            }
+            sizeCanvas();
+            window.addEventListener('resize', sizeCanvas);
+
+            // Generate random stars (reduced for performance)
+            var stars = [];
+            var numStars = 300;
+            for(var i = 0; i < numStars; i++) {
+                stars.push({
+                    x: Math.random(),
+                    y: Math.random(),
+                    r: Math.random() * 1.4 + 0.3,
+                    brightness: Math.random() * 0.6 + 0.2,
+                    twinkleSpeed: 0.003 + Math.random() * 0.008,
+                    twinklePhase: Math.random() * Math.PI * 2
+                });
+            }
+
+            // Constellation data — real star patterns (normalized 0-1 positions)
+            var constellations = [
+                { // Ursa Major (Great Bear / Big Dipper)
+                    name: 'Ursa Major',
+                    offsetX: 0.05, offsetY: 0.08, scale: 0.22,
+                    stars: [
+                        {x:0.0,y:0.4}, {x:0.15,y:0.25}, {x:0.35,y:0.2}, {x:0.55,y:0.22},
+                        {x:0.65,y:0.05}, {x:0.85,y:0.0}, {x:1.0,y:0.15}
+                    ],
+                    lines: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,3]]
+                },
+                { // Orion
+                    name: 'Orion',
+                    offsetX: 0.72, offsetY: 0.12, scale: 0.18,
+                    stars: [
+                        {x:0.3,y:0.0}, {x:0.7,y:0.05},  // shoulders
+                        {x:0.35,y:0.4}, {x:0.5,y:0.42}, {x:0.65,y:0.4}, // belt
+                        {x:0.2,y:0.85}, {x:0.8,y:0.8},  // feet
+                        {x:0.5,y:0.2}  // center body
+                    ],
+                    lines: [[0,7],[1,7],[7,2],[7,4],[2,3],[3,4],[2,5],[4,6],[0,2],[1,4]]
+                },
+                { // Cassiopeia (W shape)
+                    name: 'Cassiopeia',
+                    offsetX: 0.38, offsetY: 0.65, scale: 0.16,
+                    stars: [
+                        {x:0.0,y:0.3}, {x:0.25,y:0.0}, {x:0.5,y:0.25},
+                        {x:0.75,y:0.0}, {x:1.0,y:0.3}
+                    ],
+                    lines: [[0,1],[1,2],[2,3],[3,4]]
+                },
+                { // Leo (simplified)
+                    name: 'Leo',
+                    offsetX: 0.6, offsetY: 0.55, scale: 0.2,
+                    stars: [
+                        {x:0.0,y:0.3}, {x:0.15,y:0.1}, {x:0.3,y:0.0}, {x:0.45,y:0.15},
+                        {x:0.35,y:0.35}, {x:0.65,y:0.5}, {x:0.85,y:0.55},
+                        {x:1.0,y:0.4}, {x:0.85,y:0.3}
+                    ],
+                    lines: [[0,1],[1,2],[2,3],[3,4],[4,0],[4,5],[5,6],[6,7],[7,8],[8,5]]
+                },
+                { // Scorpius (tail)
+                    name: 'Scorpius',
+                    offsetX: 0.02, offsetY: 0.55, scale: 0.2,
+                    stars: [
+                        {x:0.5,y:0.0}, {x:0.45,y:0.15}, {x:0.4,y:0.3},
+                        {x:0.3,y:0.45}, {x:0.15,y:0.6}, {x:0.05,y:0.75},
+                        {x:0.1,y:0.9}, {x:0.25,y:0.95}, {x:0.35,y:0.85}
+                    ],
+                    lines: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8]]
+                },
+                { // Cygnus (Northern Cross)
+                    name: 'Cygnus',
+                    offsetX: 0.35, offsetY: 0.3, scale: 0.14,
+                    stars: [
+                        {x:0.5,y:0.0}, {x:0.5,y:0.35}, {x:0.5,y:0.7}, {x:0.5,y:1.0},
+                        {x:0.15,y:0.5}, {x:0.85,y:0.5}
+                    ],
+                    lines: [[0,1],[1,2],[2,3],[4,2],[2,5]]
+                }
+            ];
+
+            var animActive = false;
+            var animFrame = 0;
+
+            function draw() {
+                if(!animActive) return;
+                requestAnimationFrame(draw);
+                animFrame++;
+                // Skip every other frame for performance
+                if(animFrame % 2 !== 0) return;
+
+                var W = canvas.width, H = canvas.height;
+                ctx.clearRect(0, 0, W, H);
+
+                // Deep space gradient background
+                var grad = ctx.createRadialGradient(W*0.5, H*0.5, 0, W*0.5, H*0.5, W*0.7);
+                grad.addColorStop(0, 'rgba(8,8,25,0.95)');
+                grad.addColorStop(0.5, 'rgba(5,5,18,0.98)');
+                grad.addColorStop(1, 'rgba(3,3,12,1)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, W, H);
+
+                // Subtle nebula clouds
+                for(var n = 0; n < 3; n++) {
+                    var nx = W * (0.2 + n * 0.3);
+                    var ny = H * (0.3 + n * 0.15);
+                    var nr = W * (0.15 + n * 0.05);
+                    var nebGrad = ctx.createRadialGradient(nx, ny, 0, nx, ny, nr);
+                    var hue = 200 + n * 40;
+                    nebGrad.addColorStop(0, 'hsla(' + hue + ',60%,30%,0.03)');
+                    nebGrad.addColorStop(0.5, 'hsla(' + hue + ',50%,20%,0.015)');
+                    nebGrad.addColorStop(1, 'transparent');
+                    ctx.fillStyle = nebGrad;
+                    ctx.fillRect(0, 0, W, H);
+                }
+
+                // Draw random stars with twinkling
+                stars.forEach(function(s) {
+                    var twinkle = 0.5 + 0.5 * Math.sin(animFrame * s.twinkleSpeed + s.twinklePhase);
+                    var alpha = s.brightness * (0.4 + twinkle * 0.6);
+                    var sx = s.x * W, sy = s.y * H;
+
+                    // Glow
+                    if(s.r > 1.0) {
+                        ctx.beginPath();
+                        ctx.arc(sx, sy, s.r * 3, 0, Math.PI * 2);
+                        ctx.fillStyle = 'rgba(180,200,255,' + (alpha * 0.08) + ')';
+                        ctx.fill();
+                    }
+
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, s.r, 0, Math.PI * 2);
+                    // Slight color variation (blue-white-warm)
+                    var starHue = 200 + (s.twinklePhase / Math.PI) * 40;
+                    ctx.fillStyle = 'hsla(' + starHue + ',20%,90%,' + alpha + ')';
+                    ctx.fill();
+                });
+
+                // Draw constellations
+                constellations.forEach(function(c) {
+                    var ox = c.offsetX * W;
+                    var oy = c.offsetY * H;
+                    var sw = c.scale * W;
+                    var sh = c.scale * H;
+
+                    // Draw connecting lines
+                    ctx.strokeStyle = 'rgba(100,160,220,0.12)';
+                    ctx.lineWidth = 0.8;
+                    c.lines.forEach(function(line) {
+                        var s1 = c.stars[line[0]];
+                        var s2 = c.stars[line[1]];
+                        ctx.beginPath();
+                        ctx.moveTo(ox + s1.x * sw, oy + s1.y * sh);
+                        ctx.lineTo(ox + s2.x * sw, oy + s2.y * sh);
+                        ctx.stroke();
+                    });
+
+                    // Draw constellation stars (brighter than background)
+                    c.stars.forEach(function(s, idx) {
+                        var sx = ox + s.x * sw;
+                        var sy = oy + s.y * sh;
+                        var twinkle = 0.6 + 0.4 * Math.sin(animFrame * 0.005 + idx * 1.2);
+
+                        // Outer glow
+                        ctx.beginPath();
+                        ctx.arc(sx, sy, 5, 0, Math.PI * 2);
+                        ctx.fillStyle = 'rgba(150,200,255,' + (0.06 * twinkle) + ')';
+                        ctx.fill();
+
+                        // Star point
+                        ctx.beginPath();
+                        ctx.arc(sx, sy, 1.8, 0, Math.PI * 2);
+                        ctx.fillStyle = 'rgba(200,220,255,' + (0.6 * twinkle) + ')';
+                        ctx.fill();
+                    });
+
+                    // Draw constellation name (very subtle)
+                    var labelX = ox + sw * 0.5;
+                    var labelY = oy + sh + 12;
+                    ctx.font = '9px Inter, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillStyle = 'rgba(120,160,200,0.15)';
+                    ctx.fillText(c.name, labelX, labelY);
+                });
+
+                // Occasional shooting star
+                if(animFrame % 400 === 0 || animFrame % 650 === 0) {
+                    var ssX = Math.random() * W;
+                    var ssY = Math.random() * H * 0.5;
+                    var ssLen = 60 + Math.random() * 100;
+                    var ssAngle = 0.3 + Math.random() * 0.5;
+                    var ssGrad = ctx.createLinearGradient(
+                        ssX, ssY,
+                        ssX + Math.cos(ssAngle) * ssLen,
+                        ssY + Math.sin(ssAngle) * ssLen
+                    );
+                    ssGrad.addColorStop(0, 'rgba(255,255,255,0.6)');
+                    ssGrad.addColorStop(1, 'rgba(255,255,255,0)');
+                    ctx.strokeStyle = ssGrad;
+                    ctx.lineWidth = 1.2;
+                    ctx.beginPath();
+                    ctx.moveTo(ssX, ssY);
+                    ctx.lineTo(
+                        ssX + Math.cos(ssAngle) * ssLen,
+                        ssY + Math.sin(ssAngle) * ssLen
+                    );
+                    ctx.stroke();
+                }
+            }
+
+            ScrollTrigger.create({
+                trigger: '.experience',
+                start: 'top bottom',
+                end: 'bottom top',
+                onEnter: function() { animActive = true; draw(); },
+                onLeave: function() { animActive = false; },
+                onEnterBack: function() { animActive = true; draw(); },
+                onLeaveBack: function() { animActive = false; }
+            });
+        }
+
+        function initGlobe() {
+            if(typeof THREE==='undefined') return;
+            const canvas = document.getElementById('globeCanvas');
+            const expBody = canvas.parentElement;
+            // Use computed style to get actual rendered dimensions
+            const gW = canvas.offsetWidth || Math.floor(expBody.clientWidth * 0.6) || 800;
+            const gH = expBody.clientHeight || window.innerHeight;
+            canvas.width = gW; canvas.height = gH;
+            canvas.style.width = gW + 'px'; canvas.style.height = gH + 'px';
+            
+            globeScene = new THREE.Scene();
+            globeCamera = new THREE.PerspectiveCamera(45, gW/gH, 0.1, 100);
+            globeCamera.position.z = 5.8;
+            globeRenderer = new THREE.WebGLRenderer({canvas, antialias:!isMobile, alpha:true});
+            globeRenderer.setSize(gW, gH);
+            globeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+
+            globeGroup = new THREE.Group();
+            globeScene.add(globeGroup);
+
+            // Real earth map sphere (dark night-lights texture) — use preloaded texture
+            const earthGeo = new THREE.SphereGeometry(1.98, 32, 32);
+            const earthTex = preloadedEarthTex || new THREE.TextureLoader().load('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-night.jpg');
+            const earthMat = new THREE.MeshBasicMaterial({map: earthTex, transparent: true, opacity: 0.65});
+            const earthMesh = new THREE.Mesh(earthGeo, earthMat);
+            globeGroup.add(earthMesh);
+
+            // Subtle atmosphere glow around the earth
+            const atmosGeo = new THREE.SphereGeometry(2.08, 32, 32);
+            const atmosMat = new THREE.ShaderMaterial({
+                vertexShader: [
+                    'varying vec3 vNormal;',
+                    'void main(){',
+                    '  vNormal=normalize(normalMatrix*normal);',
+                    '  gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);',
+                    '}'
+                ].join('\n'),
+                fragmentShader: [
+                    'varying vec3 vNormal;',
+                    'void main(){',
+                    '  float intensity=pow(0.65-dot(vNormal,vec3(0,0,1.0)),2.0);',
+                    '  gl_FragColor=vec4(0.0,0.94,1.0,1.0)*intensity*0.5;',
+                    '}'
+                ].join('\n'),
+                blending: THREE.AdditiveBlending,
+                side: THREE.BackSide,
+                transparent: true
+            });
+            globeGroup.add(new THREE.Mesh(atmosGeo, atmosMat));
+
+            // Load country wireframe boundaries — merged into single LineSegments for performance
+            function addCountryWireframes(topoData) {
+                if(typeof topojson === 'undefined' || !topoData) return;
+                const countries = topojson.feature(topoData, topoData.objects.countries);
+                const wireMat = new THREE.LineBasicMaterial({color:0x00F0FF, transparent:true, opacity:0.28});
+                const R = 2.005;
+                var allSegPts = []; // Collect all line segment pairs
+                countries.features.forEach(feature => {
+                    const coords = feature.geometry.type === 'Polygon'
+                        ? [feature.geometry.coordinates]
+                        : feature.geometry.coordinates;
+                    coords.forEach(polygon => {
+                        polygon.forEach(ring => {
+                            var prevPt = null;
+                            for(let k=0; k<ring.length; k+=2){
+                                const lonDeg = ring[k][0];
+                                const latDeg = ring[k][1];
+                                const latR = latDeg * Math.PI / 180;
+                                const lonR = -lonDeg * Math.PI / 180;
+                                var pt = new THREE.Vector3(
+                                    R * Math.cos(latR) * Math.cos(lonR),
+                                    R * Math.sin(latR),
+                                    R * Math.cos(latR) * Math.sin(lonR)
+                                );
+                                if(prevPt) { allSegPts.push(prevPt, pt); }
+                                prevPt = pt;
+                            }
+                        });
+                    });
+                });
+                if(allSegPts.length > 0) {
+                    var mergedGeo = new THREE.BufferGeometry().setFromPoints(allSegPts);
+                    globeGroup.add(new THREE.LineSegments(mergedGeo, wireMat));
+                }
+            }
+            if(preloadedTopoData) {
+                addCountryWireframes(preloadedTopoData);
+            } else {
+                // Fallback: fetch if preload hasn't completed yet
+                fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
+                    .then(r => r.json())
+                    .then(data => addCountryWireframes(data))
+                    .catch(()=>{});
+            }
+
+            // Sparse dot overlay for tech aesthetic
+            const dotCount = isMobile ? 200 : 500;
+            const dotGeo = new THREE.BufferGeometry();
+            const dotPos = new Float32Array(dotCount*3);
+            const golden = (1+Math.sqrt(5))/2;
+            for(let i=0;i<dotCount;i++){
+                const theta=2*Math.PI*i/golden;
+                const phi=Math.acos(1-2*(i+0.5)/dotCount);
+                dotPos[i*3]=2.01*Math.sin(phi)*Math.cos(theta);
+                dotPos[i*3+1]=2.01*Math.cos(phi);
+                dotPos[i*3+2]=2.01*Math.sin(phi)*Math.sin(theta);
+            }
+            dotGeo.setAttribute('position', new THREE.Float32BufferAttribute(dotPos,3));
+            globeGroup.add(new THREE.Points(dotGeo, new THREE.PointsMaterial({color:0x1A3355, size:0.012, transparent:true, opacity:0.2})));
+
+            // Company markers (shared geometries for performance)
+            const markerGeo = new THREE.SphereGeometry(0.045,6,6);
+            const markerMat = new THREE.MeshBasicMaterial({color:0x00F0FF});
+            const glowRingGeo = new THREE.RingGeometry(0.06,0.09,12);
+            const glowRingMat = new THREE.MeshBasicMaterial({color:0x00F0FF,transparent:true,opacity:0.3,side:THREE.DoubleSide});
+            companies.forEach(c=>{
+                const p=latLonToVec3(c.lat,c.lon,2.05);
+                const marker=new THREE.Mesh(markerGeo,markerMat);
+                marker.position.copy(p);
+                globeGroup.add(marker);
+                const glow=new THREE.Mesh(glowRingGeo,glowRingMat);
+                glow.position.copy(p);
+                glow.lookAt(p.clone().multiplyScalar(2));
+                globeGroup.add(glow);
+            });
+
+            // Flight arcs (base path + traveled overlay)
+            for(let i=0;i<companies.length-1;i++){
+                const from=latLonToVec3(companies[i].lat,companies[i].lon,2);
+                const to=latLonToVec3(companies[i+1].lat,companies[i+1].lon,2);
+                const arcPts=[];
+                const angle=from.angleTo(to);
+                const sinA=Math.sin(angle);
+                for(let j=0;j<=32;j++){
+                    const t=j/32;
+                    const a=Math.sin((1-t)*angle)/sinA, b=Math.sin(t*angle)/sinA;
+                    const pt=new THREE.Vector3(a*from.x+b*to.x, a*from.y+b*to.y, a*from.z+b*to.z);
+                    pt.normalize().multiplyScalar(2*(1+Math.sin(t*Math.PI)*0.15));
+                    arcPts.push(pt);
+                }
+                const curve=new THREE.CatmullRomCurve3(arcPts);
+                globeArcs.push(curve);
+                const allPts=curve.getPoints(32);
+                // Base arc (dim, not-yet-traveled)
+                const arcGeo=new THREE.BufferGeometry().setFromPoints(allPts);
+                globeGroup.add(new THREE.Line(arcGeo, new THREE.LineBasicMaterial({color:0x1A3344, transparent:true, opacity:0.25})));
+                // Traveled overlay (primary cyan, uses drawRange for performance)
+                const travelGeo=new THREE.BufferGeometry().setFromPoints(allPts);
+                travelGeo.setDrawRange(0, 0);
+                const travelMat=new THREE.LineBasicMaterial({color:0x00F0FF, transparent:true, opacity:0.85});
+                const travelLine=new THREE.Line(travelGeo, travelMat);
+                globeGroup.add(travelLine);
+                traveledLines.push({line: travelLine, totalPts: allPts.length, arcIndex: i});
+            }
+
+            // Bright star traveler (simplified for performance)
+            globePlane = new THREE.Group();
+            const starCore = new THREE.Mesh(
+                new THREE.SphereGeometry(0.04, 8, 8),
+                new THREE.MeshBasicMaterial({color:0xFFFFFF})
+            );
+            globePlane.add(starCore);
+            const starGlow1 = new THREE.Mesh(
+                new THREE.SphereGeometry(0.08, 8, 8),
+                new THREE.MeshBasicMaterial({color:0x00F0FF, transparent:true, opacity:0.5})
+            );
+            globePlane.add(starGlow1);
+            const starGlow2 = new THREE.Mesh(
+                new THREE.SphereGeometry(0.14, 8, 8),
+                new THREE.MeshBasicMaterial({color:0x00F0FF, transparent:true, opacity:0.15})
+            );
+            globePlane.add(starGlow2);
+            // Star rays (2 cross planes instead of 4)
+            const rayMat = new THREE.MeshBasicMaterial({color:0xFFFFFF, transparent:true, opacity:0.6});
+            for(let r=0; r<2; r++){
+                const rayGeo = new THREE.PlaneGeometry(0.01, 0.2);
+                const ray = new THREE.Mesh(rayGeo, rayMat);
+                ray.rotation.z = r * Math.PI / 2;
+                globePlane.add(ray);
+            }
+            globeGroup.add(globePlane);
+            // Start at first company and rotate globe to face it
+            globePlane.position.copy(latLonToVec3(companies[0].lat,companies[0].lon,2.05));
+            globeGroup.rotation.y = companyTargetRotY(0);
+            globeRotYSmoothed = globeGroup.rotation.y;
+            lastShowCompany = 0;
+            globeAutoRotate = false;
+
+            // Start globe animation immediately for pre-rendering
+            globeActive = true;
+            animateGlobe();
+
+            // ScrollTrigger
+            ScrollTrigger.create({
+                trigger:'.experience', start:'top top', end:'+=4000', pin:true,
+                onUpdate: s => updateGlobeFlight(s.progress),
+                onLeave:()=>{globeActive=false;},
+                onEnterBack:()=>{globeActive=true;animateGlobe();},
+                onLeaveBack:()=>{globeActive=false;}
+            });
+
+            window.addEventListener('resize',()=>{
+                const rw = canvas.offsetWidth || Math.floor(expBody.clientWidth * 0.6) || 800;
+                const rh = expBody.clientHeight || window.innerHeight;
+                canvas.width = rw; canvas.height = rh;
+                canvas.style.width = rw + 'px'; canvas.style.height = rh + 'px';
+                globeCamera.aspect = rw / rh;
+                globeCamera.updateProjectionMatrix();
+                globeRenderer.setSize(rw, rh);
+            });
+        }
+
+        const flightPlan=[
+            {s:0.00,e:0.12,type:'show',ci:0},
+            {s:0.12,e:0.30,type:'fly',fi:0},
+            {s:0.30,e:0.42,type:'show',ci:1},
+            {s:0.42,e:0.58,type:'fly',fi:1},
+            {s:0.58,e:0.68,type:'show',ci:2},
+            {s:0.68,e:0.88,type:'fly',fi:2},
+            {s:0.88,e:1.00,type:'show',ci:3}
+        ];
+
+        var lastFlightSeg = null; // Track current segment to avoid redundant GSAP kills
+
+        function updateGlobeFlight(progress) {
+            const goingForward = progress >= prevProgress;
+            prevProgress = progress;
+
+            for(const seg of flightPlan) {
+                if(progress>=seg.s && progress<=seg.e) {
+                    if(seg.type==='fly' && globeArcs[seg.fi]) {
+                        // Only kill GSAP tween once when entering a fly segment
+                        if(lastFlightSeg !== seg) {
+                            gsap.killTweensOf(globeGroup.rotation);
+                            lastFlightSeg = seg;
+                            lastShowCompany = -1;
+                        }
+                        let t = (progress-seg.s)/(seg.e-seg.s);
+                        t = Math.max(0, Math.min(1, t));
+
+                        // Position the star traveler along the arc
+                        const pos = globeArcs[seg.fi].getPoint(t);
+                        globePlane.position.copy(pos);
+                        const tangent = globeArcs[seg.fi].getTangent(t);
+                        if(!goingForward) tangent.negate();
+                        globePlane.lookAt(pos.clone().add(tangent));
+                        globePlane.visible = true;
+                        globeAutoRotate = false;
+
+                        // Direct rotation — no lerp, no frame-rate dependency, no jitter
+                        var fromTargetY = companyTargetRotY(seg.fi);
+                        var toTargetY = companyTargetRotY(seg.fi + 1);
+                        var angleDiff = shortestAngleDiff(fromTargetY, toTargetY);
+                        // Smooth easeInOutQuad curve tied to scroll progress
+                        var easedT = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
+                        globeGroup.rotation.y = fromTargetY + angleDiff * easedT;
+
+                        showExpCard(-1);
+                    } else if(seg.type==='show') {
+                        lastFlightSeg = null; // Reset flight tracker
+                        const cPos = latLonToVec3(companies[seg.ci].lat, companies[seg.ci].lon, 2.05);
+                        globePlane.position.copy(cPos);
+                        globePlane.visible = true;
+                        globeAutoRotate = false;
+                        // Only fire rotation tween once per company arrival
+                        if(lastShowCompany !== seg.ci) {
+                            lastShowCompany = seg.ci;
+                            showExpCard(seg.ci);
+                        }
+                    }
+                    break;
+                }
+            }
+
+            // Update traveled path overlay lines
+            updateTraveledPaths(progress);
+        }
+
+        function updateTraveledPaths(progress) {
+            traveledLines.forEach(tl => {
+                const fi = tl.arcIndex;
+                const flySeg = flightPlan.find(s => s.type === 'fly' && s.fi === fi);
+                if(!flySeg) return;
+                let travelT = 0;
+                if(progress >= flySeg.e) {
+                    travelT = 1;
+                } else if(progress > flySeg.s) {
+                    travelT = (progress - flySeg.s) / (flySeg.e - flySeg.s);
+                }
+                // Use drawRange instead of rebuilding geometry
+                var drawCount = Math.max(0, Math.floor(travelT * tl.totalPts));
+                tl.line.geometry.setDrawRange(0, drawCount);
+                tl.line.material.opacity = travelT > 0 && travelT < 1 ? 0.95 : 0.7;
+            });
+        }
+
+        // Shared geometries for ripple effects
+        var rippleRingGeo = null;
+        var rippleParticleGeo = null;
+        function spawnArrivalRipple(companyIdx) {
+            const pos = latLonToVec3(companies[companyIdx].lat, companies[companyIdx].lon, 2.06);
+            const normal = pos.clone().normalize();
+            if(!rippleRingGeo) rippleRingGeo = new THREE.RingGeometry(0.01, 0.02, 12);
+            if(!rippleParticleGeo) rippleParticleGeo = new THREE.SphereGeometry(0.015, 3, 3);
+            // Spawn 2 rings (reduced from 3)
+            for(let i=0; i<2; i++){
+                const ringMat = new THREE.MeshBasicMaterial({
+                    color: 0x00F0FF, transparent: true, opacity: 0.9, side: THREE.DoubleSide
+                });
+                const ring = new THREE.Mesh(rippleRingGeo, ringMat);
+                ring.position.copy(pos);
+                ring.lookAt(pos.clone().add(normal));
+                globeGroup.add(ring);
+                arrivalRipples.push({
+                    mesh: ring, mat: ringMat,
+                    scale: 0.1, maxScale: 4 + i * 2, speed: 0.06 + i * 0.015,
+                    delay: i * 8, timer: 0
+                });
+            }
+            // Reduced particle burst (6 instead of 12)
+            for(let i=0; i<6; i++){
+                const pMat = new THREE.MeshBasicMaterial({color: 0x00F0FF, transparent: true, opacity: 0.8});
+                const particle = new THREE.Mesh(rippleParticleGeo, pMat);
+                particle.position.copy(pos);
+                const dir = normal.clone().add(new THREE.Vector3(
+                    (Math.random()-0.5)*0.8, (Math.random()-0.5)*0.8, (Math.random()-0.5)*0.8
+                )).normalize().multiplyScalar(0.015 + Math.random()*0.01);
+                globeGroup.add(particle);
+                arrivalRipples.push({
+                    mesh: particle, mat: pMat, isParticle: true,
+                    vel: dir, timer: 0, life: 40 + Math.random()*20
+                });
+            }
+        }
+
+        function updateRipples() {
+            arrivalRipples = arrivalRipples.filter(r => {
+                r.timer++;
+                if(r.isParticle) {
+                    r.mesh.position.add(r.vel);
+                    r.mat.opacity = Math.max(0, 0.8 * (1 - r.timer / r.life));
+                    if(r.timer >= r.life) { globeGroup.remove(r.mesh); return false; }
+                    return true;
+                }
+                if(r.timer < r.delay) return true;
+                r.scale += r.speed;
+                r.mesh.scale.set(r.scale, r.scale, 1);
+                r.mat.opacity = Math.max(0, 0.9 * (1 - r.scale / r.maxScale));
+                if(r.scale >= r.maxScale) { globeGroup.remove(r.mesh); return false; }
+                return true;
+            });
+        }
+
+        function normalizeAngle(a) {
+            return a - Math.floor((a + Math.PI) / (2 * Math.PI)) * 2 * Math.PI;
+        }
+
+        function shortestAngleDiff(from, to) {
+            var d = to - from;
+            return d - Math.floor((d + Math.PI) / (2 * Math.PI)) * 2 * Math.PI;
+        }
+
+        function companyTargetRotY(companyIdx) {
+            var lat = companies[companyIdx].lat;
+            var lon = companies[companyIdx].lon;
+            var phi = (90 - lat) * Math.PI / 180;
+            var theta = (lon + 180) * Math.PI / 180;
+            var x = -Math.sin(phi) * Math.cos(theta);
+            var z = Math.sin(phi) * Math.sin(theta);
+            return Math.atan2(-x, z);
+        }
+
+        function rotateGlobeToCompany(companyIdx) {
+            if(!globeGroup || companyIdx < 0) { globeAutoRotate = true; return; }
+            globeAutoRotate = false;
+            // Normalize current rotation first
+            globeGroup.rotation.y = normalizeAngle(globeGroup.rotation.y);
+            var curY = globeGroup.rotation.y;
+            var targetY = companyTargetRotY(companyIdx);
+            var diff = shortestAngleDiff(curY, targetY);
+            var finalY = curY + diff;
+            // Single smooth tween — overwrite any existing
+            gsap.to(globeGroup.rotation, {
+                y: finalY, duration: 1.0, ease: 'power2.inOut',
+                overwrite: true,
+                onComplete: function() {
+                    // Re-normalize after tween completes to prevent drift
+                    globeGroup.rotation.y = normalizeAngle(globeGroup.rotation.y);
+                }
+            });
+        }
+
+        function showExpCard(index) {
+            if(index===currentExpCard) return;
+            // Spawn ripple when arriving at a new company
+            if(index >= 0) {
+                spawnArrivalRipple(index);
+                rotateGlobeToCompany(index);
+            }
+            currentExpCard=index;
+            document.querySelectorAll('.exp-card').forEach((card,i)=>{
+                if(i===index){
+                    gsap.to(card, {opacity:1, x:0, duration:0.5, ease:'power3.out'});
+                } else {
+                    gsap.to(card, {opacity:0, x:60, duration:0.3, ease:'power2.in'});
+                }
+            });
+        }
+
+        // Pre-allocated comet trail pool (no per-frame mesh creation)
+        var cometPoolSize = 15;
+        var cometPool = [];
+        var cometPoolReady = false;
+        function initCometPool() {
+            if(!globeGroup || cometPoolReady) return;
+            var sharedGeo = new THREE.SphereGeometry(0.02, 3, 3);
+            for(var i=0; i<cometPoolSize; i++){
+                var pMat = new THREE.MeshBasicMaterial({color:0x00F0FF, transparent:true, opacity:0});
+                var p = new THREE.Mesh(sharedGeo, pMat);
+                p.visible = false;
+                globeGroup.add(p);
+                cometPool.push({mesh:p, mat:pMat, life:0, maxLife:25, active:false});
+            }
+            cometPoolReady = true;
+        }
+        var cometPoolIdx = 0;
+        function spawnCometParticle() {
+            if(!globePlane || !globePlane.visible || !cometPoolReady) return;
+            var slot = cometPool[cometPoolIdx % cometPoolSize];
+            cometPoolIdx++;
+            slot.mesh.position.copy(globePlane.position);
+            slot.mesh.scale.setScalar(1);
+            slot.mat.opacity = 0.6;
+            slot.mesh.visible = true;
+            slot.life = 0;
+            slot.active = true;
+        }
+
+        function updateCometTrail() {
+            for(var i=0; i<cometPool.length; i++){
+                var p = cometPool[i];
+                if(!p.active) continue;
+                p.life++;
+                var t = p.life / p.maxLife;
+                p.mat.opacity = 0.6 * (1 - t);
+                p.mesh.scale.setScalar(1 - t * 0.7);
+                if(p.life >= p.maxLife) { p.mesh.visible = false; p.active = false; }
+            }
+        }
+
+        function animateGlobe() {
+            if(!globeActive) return;
+            requestAnimationFrame(animateGlobe);
+            globeFrameCount++;
+            if(!cometPoolReady) initCometPool();
+            // Only auto-rotate when idle (not during scroll-driven flight/show)
+            if(globeAutoRotate) {
+                globeGroup.rotation.y += 0.001;
+                if(!isMobile){
+                    const mx = (mouseX / window.innerWidth - 0.5) * 0.15;
+                    globeGroup.rotation.x += (-mx - globeGroup.rotation.x * 0.05) * 0.02;
+                }
+            }
+            // Periodically normalize rotation to prevent float drift (every 120 frames)
+            if(globeFrameCount % 120 === 0 && globeAutoRotate) {
+                globeGroup.rotation.y = normalizeAngle(globeGroup.rotation.y);
+            }
+            // Pulse the star glow
+            if(globePlane && globePlane.children.length > 2){
+                const pulse = 0.8 + Math.sin(globeFrameCount * 0.08) * 0.3;
+                globePlane.children[1].scale.setScalar(pulse);
+                globePlane.children[2].scale.setScalar(pulse * 1.1);
+                for(var ri=3; ri<globePlane.children.length; ri++){
+                    globePlane.children[ri].rotation.z += 0.02;
+                }
+            }
+            // Spawn comet trail every 4 frames
+            if(globeFrameCount % 4 === 0) spawnCometParticle();
+            updateCometTrail();
+            // Only update ripples if any exist
+            if(arrivalRipples.length > 0) updateRipples();
+            globeRenderer.render(globeScene, globeCamera);
+        }
+
+        /* ===========================================
+           GSAP SCROLL ANIMATIONS
+           =========================================== */
+        function initScrollAnimations() {
+            // Contact reveal
+            gsap.from('.contact-inner > *', {scrollTrigger:{trigger:'.contact',start:'top 70%'}, y:50, opacity:0, stagger:0.15, duration:0.8, ease:'power3.out'});
+
+            // Scroll progress bar
+            window.addEventListener('scroll',()=>{
+                const h=document.documentElement.scrollHeight-window.innerHeight;
+                document.getElementById('scrollProgress').style.width=(window.scrollY/h*100)+'%';
+            });
+
+            // Nav scroll behavior
+            let lastScroll=0;
+            window.addEventListener('scroll',()=>{
+                const nav=document.getElementById('nav');
+                const cur=window.scrollY;
+                nav.style.background=cur>100?'rgba(5,5,16,0.92)':'rgba(5,5,16,0.7)';
+                if(cur>lastScroll&&cur>300){nav.style.transform='translateY(-100%)';}
+                else{nav.style.transform='translateY(0)';}
+                lastScroll=cur;
+            });
+        }
+
+        /* ===========================================
+           NAVIGATION
+           =========================================== */
+        function initNav() {
+            const toggle=document.getElementById('navToggle');
+            const links=document.getElementById('navLinks');
+            toggle.addEventListener('click',()=>links.classList.toggle('open'));
+            links.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>links.classList.remove('open')));
+            document.querySelectorAll('a[href^="#"]').forEach(a=>{
+                a.addEventListener('click',function(e){
+                    e.preventDefault();
+                    const t=document.querySelector(this.getAttribute('href'));
+                    if(t) t.scrollIntoView({behavior:'smooth',block:'start'});
+                });
+            });
+        }
+
+        /* ===========================================
+           BUTTON RIPPLE
+           =========================================== */
+        function initRipple() {
+            document.querySelectorAll('.btn').forEach(btn=>{
+                btn.addEventListener('click',function(e){
+                    const r=this.getBoundingClientRect();
+                    const rip=document.createElement('span');
+                    rip.className='btn-ripple';
+                    rip.style.left=(e.clientX-r.left)+'px';
+                    rip.style.top=(e.clientY-r.top)+'px';
+                    rip.style.width=rip.style.height=Math.max(r.width,r.height)+'px';
+                    this.appendChild(rip);
+                    setTimeout(()=>rip.remove(),600);
+                });
+            });
+        }
+
+        /* ===========================================
+           INIT EVERYTHING
+           =========================================== */
+        // Always scroll to top on page load / refresh
+        if('scrollRestoration' in history) history.scrollRestoration = 'manual';
+        window.scrollTo({top: 0, left: 0, behavior: 'instant'});
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        window.addEventListener('beforeunload', function(){ window.scrollTo(0,0); });
+
+        initLoader();
+        initCursor();
+        initNav();
+        initRipple();
+        // Init globe immediately so it's pre-rendered before user scrolls
+        requestAnimationFrame(function(){
+            initHeroScene();
+            initFireworks();
+            initExpStars();
+            initGlobe();
+            // Pre-render first frame of globe so it's ready
+            if(globeRenderer && globeScene && globeCamera) {
+                globeRenderer.render(globeScene, globeCamera);
+            }
+            initScrollAnimations();
+        });
+
+    })();
+    </script>
+</body>
+</html>
